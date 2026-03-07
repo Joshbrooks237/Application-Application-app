@@ -260,6 +260,37 @@
     if (badge) badge.classList.remove('visible');
   }
 
+  // ── Selection / Highlight Detection ──
+  function getSelectedText() {
+    const selection = window.getSelection();
+    if (!selection || selection.isCollapsed) return '';
+    return selection.toString().trim();
+  }
+
+  function updateButtonMode() {
+    const btn = document.getElementById('indeeeed-optimize-btn');
+    if (!btn || btn.classList.contains('loading')) return;
+
+    const textSpan = btn.querySelector('.btn-text');
+    const iconSpan = btn.querySelector('.btn-icon');
+    const selected = getSelectedText();
+
+    if (selected.length > 20) {
+      btn.classList.add('highlight-mode');
+      iconSpan.textContent = '✂️';
+      textSpan.textContent = 'Optimize Selected Text';
+    } else {
+      btn.classList.remove('highlight-mode');
+      iconSpan.textContent = '🚀';
+      textSpan.textContent = 'Optimize My Application';
+    }
+  }
+
+  function startSelectionListener() {
+    document.addEventListener('selectionchange', updateButtonMode);
+    document.addEventListener('mouseup', () => setTimeout(updateButtonMode, 50));
+  }
+
   // ── Floating Button ──
   function createOptimizeButton() {
     if (document.getElementById('indeeeed-optimize-btn')) {
@@ -277,9 +308,9 @@
 
     btn.addEventListener('click', handleOptimizeClick);
     document.body.appendChild(btn);
-    console.log('[Indeeeed] ✅ Floating optimize button injected into DOM');
+    startSelectionListener();
+    console.log('[Indeeeed] ✅ Floating optimize button injected (with highlight mode)');
 
-    // Verify it's actually visible
     const computed = window.getComputedStyle(btn);
     console.log('[Indeeeed] Button computed styles — display:', computed.display,
       '| visibility:', computed.visibility,
@@ -293,18 +324,28 @@
     const btn = document.getElementById('indeeeed-optimize-btn');
     const textSpan = btn.querySelector('.btn-text');
 
-    console.log('[Indeeeed] Optimize button clicked');
+    // Check for highlighted text first
+    const selectedText = getSelectedText();
+    const isHighlightMode = selectedText.length > 20;
 
-    const jobData = scrapeJobData();
+    if (isHighlightMode) {
+      console.log(`[Indeeeed] Highlight mode — using selected text (${selectedText.length} chars)`);
+    } else {
+      console.log('[Indeeeed] Full scrape mode — no text selected');
+    }
+
+    const jobData = isHighlightMode
+      ? buildJobDataFromSelection(selectedText)
+      : scrapeJobData();
 
     if (!jobData.fullDescription || jobData.fullDescription.length < 50) {
-      showToast('Could not find enough job description text. Try scrolling down first.', 'error');
+      showToast('Not enough text. Select more text or try scrolling down.', 'error');
       return;
     }
 
     btn.classList.add('loading');
     textSpan.textContent = 'Optimizing...';
-    showStatusBadge('⏳ Sending to optimizer...');
+    showStatusBadge(isHighlightMode ? '⏳ Optimizing selected text...' : '⏳ Sending to optimizer...');
 
     try {
       console.log('[Indeeeed] Sending job data to backend...');
@@ -346,9 +387,31 @@
       showStatusBadge('❌ Failed');
     } finally {
       btn.classList.remove('loading');
-      textSpan.textContent = 'Optimize My Application';
+      // Clear selection so button reverts to default state
+      window.getSelection()?.removeAllRanges();
+      updateButtonMode();
       setTimeout(hideStatusBadge, 5000);
     }
+  }
+
+  function buildJobDataFromSelection(selectedText) {
+    // Still try to grab title and company from the page for context
+    const title = extractJobTitle();
+    const company = extractCompanyName();
+    const { skills, qualifications } = extractSkillsAndQualifications(selectedText);
+
+    console.log('[Indeeeed] Built job data from selection — title:', title, '| company:', company);
+
+    return {
+      jobTitle: title,
+      companyName: company,
+      fullDescription: selectedText,
+      requiredSkills: skills,
+      preferredQualifications: qualifications,
+      sourceUrl: window.location.href,
+      scrapedAt: new Date().toISOString(),
+      mode: 'highlight'
+    };
   }
 
   // ── Initialization with retry ──

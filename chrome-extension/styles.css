@@ -36,6 +36,16 @@
   opacity: 0.85;
 }
 
+#indeeeed-optimize-btn.highlight-mode {
+  background: linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%);
+  box-shadow: 0 4px 20px rgba(124, 58, 237, 0.4), 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+#indeeeed-optimize-btn.highlight-mode:hover {
+  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+  box-shadow: 0 6px 28px rgba(124, 58, 237, 0.5), 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
 #indeeeed-optimize-btn .btn-icon {
   font-size: 18px;
 }
