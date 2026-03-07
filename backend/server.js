@@ -170,7 +170,25 @@ Return ONLY valid JSON, no markdown, no explanation.
 Expected format:
 {"keywords": [{"keyword": "...", "category": "technical_skill|soft_skill|qualification|industry_term", "importance": 1-10, "type": "keyword|phrase"}]}`,
 
-  resumeRewrite: `You are an expert resume writer and ATS optimization specialist. You will be given a candidate's master resume and a list of ATS keywords AND multi-word phrases from a job posting. Rewrite the following resume sections to naturally incorporate as many as possible without keyword stuffing. Pay special attention to including the EXACT multi-word phrases (marked as "phrase") since ATS systems often scan for these complete phrases, not just individual words. Keep all facts true — do not invent experience or skills. Preserve the candidate's voice. Rewrite: summary, skills list, and top 3 bullet points for each role. Return ONLY valid JSON with keys: summary, skills, experience.
+  resumeRewrite: `You are an expert resume writer and ATS optimization specialist. You will be given a candidate's master resume and a list of ATS keywords AND multi-word phrases from a job posting. Your job is to rewrite the resume to best match the target role.
+
+CRITICAL RULES FOR ROLE SELECTION:
+- The master resume contains MANY different job roles (storage management, customer service, delivery driving, fleet management, HVAC sales, sound engineering, A&R, production). You MUST review ALL of them.
+- Select the 4-6 MOST RELEVANT roles for the target job. Do NOT default to only storage facility roles.
+- For customer service positions, PRIORITIZE: Customer Service Associate, Medical Supply Delivery Driver, Fleet Manager, HVAC Lead Generator, and any role with direct customer/client interaction.
+- For logistics/operations positions, PRIORITIZE: Fleet Manager, Medical Supply Delivery Driver, Storage Facility Manager, Production Runner.
+- For administrative/office positions, PRIORITIZE: A&R Administrative Intern, Customer Service Associate, HVAC Lead Generator.
+- At least 2-3 of the roles in your output MUST be non-storage roles. Storage jobs should be supporting evidence, not the entire resume.
+- If a role from the resume is irrelevant to the target job, leave it out entirely rather than forcing it in.
+
+REWRITING RULES:
+- Naturally incorporate as many keywords and exact multi-word phrases as possible without keyword stuffing.
+- Pay special attention to including EXACT multi-word phrases (marked as "phrase") since ATS systems scan for complete phrases.
+- Keep all facts true — do not invent experience or skills.
+- Preserve the candidate's voice.
+- Rewrite: summary, skills list, and top 3 bullet points for each selected role.
+
+Return ONLY valid JSON with keys: summary, skills, experience.
 
 Expected format:
 {"summary": "...", "skills": ["skill1", "skill2", ...], "experience": [{"role": "...", "company": "...", "bullets": ["...", "...", "..."]}]}`,
