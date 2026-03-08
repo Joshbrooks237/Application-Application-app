@@ -173,26 +173,27 @@ Expected format:
 
   resumeRewrite: `You are an expert resume writer and ATS optimization specialist. You will be given a candidate's master resume and a list of ATS keywords AND multi-word phrases from a job posting. Your job is to rewrite the resume to best match the target role.
 
-CRITICAL RULES FOR ROLE SELECTION:
-- The master resume contains MANY different job roles (storage management, customer service, delivery driving, fleet management, HVAC sales, sound engineering, A&R, production). You MUST review ALL of them.
-- Select the 4-6 MOST RELEVANT roles for the target job. Do NOT default to only storage facility roles.
-- For customer service positions, PRIORITIZE: Customer Service Associate, Medical Supply Delivery Driver, Fleet Manager, HVAC Lead Generator, and any role with direct customer/client interaction.
-- For logistics/operations positions, PRIORITIZE: Fleet Manager, Medical Supply Delivery Driver, Storage Facility Manager, Production Runner.
-- For administrative/office positions, PRIORITIZE: A&R Administrative Intern, Customer Service Associate, HVAC Lead Generator.
-- At least 2-3 of the roles in your output MUST be non-storage roles. Storage jobs should be supporting evidence, not the entire resume.
-- If a role from the resume is irrelevant to the target job, leave it out entirely rather than forcing it in.
+CRITICAL RULES — EVERY ROLE MUST BE INCLUDED:
+- The master resume contains MANY different job roles. You MUST include ALL of them in your output. NEVER drop a role.
+- Split the roles into TWO groups:
+  1. "experience" — the 3-4 roles MOST RELEVANT to the target job. These go first and get full treatment (3 bullets each, heavy keyword injection).
+  2. "additionalExperience" — ALL REMAINING roles. These provide credibility, management depth, and seniority. Give each 2 bullets. Still weave in keywords where natural but keep them concise.
+- Storage/facility management roles should generally go in "additionalExperience" UNLESS the target job is specifically about facilities, property, or storage management.
+- For customer service positions, PRIORITIZE in "experience": Customer Service Associate, Medical Supply Delivery Driver, Fleet Manager, HVAC Lead Generator, and any role with direct customer/client interaction.
+- For logistics/operations positions, PRIORITIZE in "experience": Fleet Manager, Medical Supply Delivery Driver, Production Runner, Storage Facility Manager.
+- For administrative/office positions, PRIORITIZE in "experience": A&R Administrative Intern, Customer Service Associate, HVAC Lead Generator.
 
 REWRITING RULES:
 - Naturally incorporate as many keywords and exact multi-word phrases as possible without keyword stuffing.
 - Pay special attention to including EXACT multi-word phrases (marked as "phrase") since ATS systems scan for complete phrases.
 - Keep all facts true — do not invent experience or skills.
 - Preserve the candidate's voice.
-- Rewrite: summary, skills list, and top 3 bullet points for each selected role.
+- Rewrite: summary, skills list, 3 bullet points per "experience" role, 2 bullet points per "additionalExperience" role.
 
-Return ONLY valid JSON with keys: summary, skills, experience.
+Return ONLY valid JSON with keys: summary, skills, experience, additionalExperience.
 
 Expected format:
-{"summary": "...", "skills": ["skill1", "skill2", ...], "experience": [{"role": "...", "company": "...", "bullets": ["...", "...", "..."]}]}`,
+{"summary": "...", "skills": ["skill1", "skill2", ...], "experience": [{"role": "...", "company": "...", "bullets": ["...", "...", "..."]}], "additionalExperience": [{"role": "...", "company": "...", "bullets": ["...", "..."]}]}`,
 
   coverLetter: `You are an expert cover letter writer. Write a tailored cover letter using the candidate's background and the job's exact keywords and phrases. Mirror the tone and language of the job posting. The letter should feel human, specific, and confident — not generic. Use the STAR method for one key achievement. Length: 3 paragraphs. Tone: [TONE_SELECTION].
 

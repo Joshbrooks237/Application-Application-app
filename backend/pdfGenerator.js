@@ -182,6 +182,35 @@ async function generateResumePDF(rewrittenResume, keywords, outputPath, masterRe
     }
   }
 
+  // ── Additional Management Experience ──
+  const additionalExp = rewrittenResume.additionalExperience || [];
+  if (additionalExp.length > 0) {
+    doc.font(FONT_BOLD).fontSize(11).fillColor(COLOR_PRIMARY)
+       .text('ADDITIONAL MANAGEMENT EXPERIENCE', MARGIN, undefined, { width: CONTENT_WIDTH });
+    drawSectionLine(doc);
+    doc.moveDown(0.2);
+
+    for (const role of additionalExp) {
+      const roleTitle = role.role || role.title || 'Role';
+      const company = role.company || '';
+
+      doc.font(FONT_BOLD).fontSize(10).fillColor(COLOR_TEXT)
+         .text(roleTitle, MARGIN, undefined, { continued: true });
+      doc.font(FONT_REGULAR).fontSize(10).fillColor(COLOR_SUBTEXT)
+         .text(`  |  ${company}`, { continued: false });
+      doc.moveDown(0.15);
+
+      const bullets = role.bullets || [];
+      for (const bullet of bullets) {
+        doc.font(FONT_REGULAR).fontSize(10).fillColor(COLOR_SUBTEXT)
+           .text('•  ', MARGIN + 15, undefined, { continued: true });
+        writeTextWithKeywords(doc, bullet, keywords, { fontSize: 10, indent: 15 });
+        doc.moveDown(0.05);
+      }
+      doc.moveDown(0.3);
+    }
+  }
+
   doc.end();
 
   return new Promise((resolve, reject) => {

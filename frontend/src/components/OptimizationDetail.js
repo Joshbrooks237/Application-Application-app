@@ -205,6 +205,28 @@ export default function OptimizationDetail({ optimizationId, onBack }) {
                   </ul>
                 </div>
               ))}
+
+              {data.rewrittenResume?.additionalExperience?.length > 0 && (
+                <div>
+                  <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3 mt-2 pt-3 border-t border-surface-overlay">
+                    Additional Management Experience
+                  </h4>
+                  {data.rewrittenResume.additionalExperience.map((role, i) => (
+                    <div key={`addl-${i}`} className="mb-3">
+                      <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">{role.role || role.title}</h4>
+                      <p className="text-xs text-slate-500 mb-2">{role.company}</p>
+                      <ul className="space-y-1.5">
+                        {role.bullets?.map((bullet, j) => (
+                          <li key={j} className="flex gap-2 text-sm">
+                            <span className="text-primary-light mt-0.5 shrink-0">•</span>
+                            <span><HighlightedText text={bullet} keywords={keywordStrings} /></span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>

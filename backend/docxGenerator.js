@@ -240,6 +240,62 @@ async function generateResumeDOCX(rewrittenResume, keywords, jobTitle, companyNa
     }
   }
 
+  // ── Additional Management Experience Section ──
+  const additionalExp = rewrittenResume.additionalExperience || [];
+  if (additionalExp.length > 0) {
+    sections.push(
+      new Paragraph({
+        children: [new TextRun({
+          text: 'ADDITIONAL MANAGEMENT EXPERIENCE',
+          font: FONT,
+          size: FONT_SIZE_HEADING,
+          bold: true,
+          color: COLOR_PRIMARY,
+          allCaps: true
+        })],
+        spacing: { before: 200, after: 80 },
+        border: { bottom: { style: BorderStyle.SINGLE, size: 1, color: COLOR_PRIMARY } }
+      })
+    );
+
+    for (const role of additionalExp) {
+      sections.push(
+        new Paragraph({
+          children: [
+            new TextRun({
+              text: role.role || role.title || 'Role',
+              font: FONT,
+              size: FONT_SIZE_BODY,
+              bold: true,
+              color: COLOR_TEXT
+            }),
+            new TextRun({
+              text: `  |  ${role.company || ''}`,
+              font: FONT,
+              size: FONT_SIZE_BODY,
+              color: COLOR_SUBTEXT
+            })
+          ],
+          spacing: { before: 160, after: 40 }
+        })
+      );
+
+      const bullets = role.bullets || [];
+      for (const bullet of bullets) {
+        sections.push(
+          new Paragraph({
+            children: [
+              new TextRun({ text: '•  ', font: FONT, size: FONT_SIZE_BODY, color: COLOR_SUBTEXT }),
+              ...createHighlightedRuns(bullet, keywords)
+            ],
+            spacing: { after: 40 },
+            indent: { left: 360 }
+          })
+        );
+      }
+    }
+  }
+
   const doc = new Document({
     sections: [{
       properties: {
