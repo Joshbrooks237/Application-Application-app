@@ -130,12 +130,27 @@ export default function OptimizationDetail({ optimizationId, onBack }) {
         </div>
       </div>
 
+      {/* Below-threshold warning */}
+      {data.belowThreshold && (
+        <div className="bg-yellow-900/30 border border-yellow-600/40 rounded-xl px-5 py-4 flex items-start gap-3">
+          <span className="text-yellow-400 text-xl shrink-0">⚠️</span>
+          <div>
+            <p className="text-sm font-semibold text-yellow-300">Best achievable match — consider if this role is right for you</p>
+            <p className="text-xs text-yellow-400/70 mt-1">
+              Tried {data.retryAttempts} optimization {data.retryAttempts === 1 ? 'attempt' : 'attempts'} but couldn't reach 75%.
+              This is the highest-scoring version. The role may require skills not on your resume.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Score Bar */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <StatCard label="Match Score" value={`${data.matchScore}%`} color={data.matchScore >= 80 ? 'text-success' : 'text-warning'} />
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
+        <StatCard label="Match Score" value={`${data.matchScore}%`} color={data.matchScore >= 80 ? 'text-success' : data.matchScore >= 75 ? 'text-primary-light' : 'text-warning'} />
         <StatCard label="Original Score" value={`${data.originalScore}%`} color="text-slate-400" />
         <StatCard label="Keywords Found" value={`${data.keywordDetails?.filter(k => k.inTailoredResume).length || 0}/${data.keywords?.length || 0}`} color="text-primary-light" />
         <StatCard label="Improvement" value={`+${(data.matchScore || 0) - (data.originalScore || 0)}%`} color="text-accent" />
+        <StatCard label="Attempts" value={data.retryAttempts || 1} color={data.retryAttempts > 1 ? 'text-yellow-400' : 'text-slate-400'} />
       </div>
 
       {/* Tabs */}

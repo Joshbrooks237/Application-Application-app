@@ -256,7 +256,7 @@ async function extractKeywords(jobDescription) {
   }
 }
 
-async function rewriteResume(resumeText, keywords) {
+function buildResumeUserContent(resumeText, keywords) {
   const allItems = keywords.keywords || [];
   const singleKeywords = allItems.filter(k => k.type !== 'phrase');
   const phrases = allItems.filter(k => k.type === 'phrase');
@@ -268,10 +268,22 @@ async function rewriteResume(resumeText, keywords) {
     .map(k => `[phrase] "${k.keyword}" (${k.category}, importance: ${k.importance})`)
     .join('\n');
 
+  return `Master Resume:\n${resumeText}\n\n---\nATS Keywords:\n${keywordList}\n\n---\nATS Phrases (use these EXACT multi-word phrases):\n${phraseList}`;
+}
+
+async function rewriteResume(resumeText, keywords) {
+  return rewriteResumeWithStrategy(resumeText, keywords, null);
+}
+
+async function rewriteResumeWithStrategy(resumeText, keywords, retryInstruction) {
+  const systemPrompt = retryInstruction
+    ? `${PROMPTS.resumeRewrite}\n\n${retryInstruction}`
+    : PROMPTS.resumeRewrite;
+
   const raw = await callOpenAI(
-    PROMPTS.resumeRewrite,
-    `Master Resume:\n${resumeText}\n\n---\nATS Keywords:\n${keywordList}\n\n---\nATS Phrases (use these EXACT multi-word phrases):\n${phraseList}`,
-    'Resume Rewrite'
+    systemPrompt,
+    buildResumeUserContent(resumeText, keywords),
+    retryInstruction ? 'Resume Rewrite (retry)' : 'Resume Rewrite'
   );
 
   try {
@@ -539,39 +551,90 @@ app.post('/optimize', async (req, res) => {
   console.log(`[Server] Description length: ${fullDescription.length} chars`);
   console.log(`[Server] Tone: ${selectedTone}`);
 
+  const MATCH_THRESHOLD = 75;
+  const MAX_RETRIES = 3;
+
+  const retryStrategies = [
+    {
+      name: 'Emphasize different keywords',
+      instruction: `RETRY STRATEGY: The previous attempt scored below ${MATCH_THRESHOLD}%. This time, focus HEAVILY on the highest-importance keywords and phrases that were MISSED. Prioritize exact phrase matches above all else. Rephrase bullet points specifically to include the top-importance keywords even if it means restructuring sentences. Be more aggressive with keyword incorporation while keeping facts truthful.`
+    },
+    {
+      name: 'Adjust summary angle',
+      instruction: `RETRY STRATEGY: Previous attempts scored below ${MATCH_THRESHOLD}%. This time, completely rewrite the summary from a different angle — lead with the skills and qualifications most central to the job posting. Restructure experience bullets to front-load the exact terminology from the job description. Use the job posting's own language and phrasing wherever possible.`
+    },
+    {
+      name: 'Conversational tone with dense keywords',
+      instruction: `RETRY STRATEGY: Previous attempts scored below ${MATCH_THRESHOLD}%. This time, use a slightly more conversational, natural tone that allows you to weave in MORE keywords organically. Write longer, richer bullet points that incorporate multiple keywords per bullet. Expand the skills list to include all relevant variations. Aim for maximum keyword density while maintaining readability.`
+    }
+  ];
+
   try {
-    // Step 1: Extract ATS keywords
-    console.log('[Server] Step 1/4: Extracting keywords...');
+    // Step 1: Extract ATS keywords (done once, reused across retries)
+    console.log('[Server] Step 1: Extracting keywords...');
     const keywords = await extractKeywords(fullDescription);
     console.log(`[Server] Extracted ${keywords.keywords?.length || 0} keywords`);
 
-    // Step 2: Rewrite resume
-    console.log('[Server] Step 2/4: Rewriting resume...');
-    const rewrittenResume = await rewriteResume(masterResume.text, keywords);
-    console.log('[Server] Resume rewritten successfully');
+    let bestResult = null;
+    let bestScore = -1;
+    let attemptsMade = 0;
 
-    // Step 3: Generate cover letter
-    console.log('[Server] Step 3/4: Generating cover letter...');
-    const coverLetterText = await generateCoverLetter(
-      fullDescription,
-      rewrittenResume.summary,
-      keywords,
-      selectedTone,
-      {
-        candidateName: extractCandidateName(masterResume.text),
-        companyName: companyName || 'the company',
-        jobTitle: jobTitle || 'the position',
-        resumeText: masterResume.text
+    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+      const isRetry = attempt > 0;
+      const strategy = isRetry ? retryStrategies[attempt - 1] : null;
+
+      if (isRetry) {
+        console.log(`[Server] ── Auto-retry ${attempt}/${MAX_RETRIES}: ${strategy.name} ──`);
       }
-    );
-    console.log('[Server] Cover letter generated, length:', coverLetterText.length);
 
-    // Calculate match scores
-    const scoring = calculateMatchScore(masterResume.text, keywords, rewrittenResume);
-    console.log(`[Server] Match score: ${scoring.matchScore}% (original: ${scoring.originalScore}%)`);
+      // Step 2: Rewrite resume (with optional retry instruction prepended)
+      console.log(`[Server] Attempt ${attempt + 1}: Rewriting resume...`);
+      const rewrittenResume = await rewriteResumeWithStrategy(
+        masterResume.text, keywords, strategy ? strategy.instruction : null
+      );
+      console.log('[Server] Resume rewritten successfully');
 
-    // Step 4: Generate DOCX files
-    console.log('[Server] Step 4/4: Generating DOCX files...');
+      // Score it
+      const scoring = calculateMatchScore(masterResume.text, keywords, rewrittenResume);
+      console.log(`[Server] Attempt ${attempt + 1} score: ${scoring.matchScore}% (best so far: ${bestScore}%)`);
+      attemptsMade = attempt + 1;
+
+      if (scoring.matchScore > bestScore) {
+        bestScore = scoring.matchScore;
+
+        // Generate cover letter for this best version
+        const useTone = (attempt === MAX_RETRIES && scoring.matchScore < MATCH_THRESHOLD)
+          ? 'Conversational' : selectedTone;
+
+        const coverLetterText = await generateCoverLetter(
+          fullDescription,
+          rewrittenResume.summary,
+          keywords,
+          useTone,
+          {
+            candidateName: extractCandidateName(masterResume.text),
+            companyName: companyName || 'the company',
+            jobTitle: jobTitle || 'the position',
+            resumeText: masterResume.text
+          }
+        );
+
+        bestResult = { rewrittenResume, coverLetterText, scoring };
+      }
+
+      if (scoring.matchScore >= MATCH_THRESHOLD) {
+        console.log(`[Server] Score ${scoring.matchScore}% meets ${MATCH_THRESHOLD}% threshold on attempt ${attempt + 1}`);
+        break;
+      }
+    }
+
+    const { rewrittenResume, coverLetterText, scoring } = bestResult;
+    const belowThreshold = scoring.matchScore < MATCH_THRESHOLD;
+
+    console.log(`[Server] Final score: ${scoring.matchScore}% after ${attemptsMade} attempt(s)${belowThreshold ? ' (below threshold)' : ''}`);
+
+    // Generate DOCX + PDF files for the best result
+    console.log('[Server] Generating output files...');
     const version = optimizationHistory.filter(
       h => h.companyName === companyName && h.jobTitle === jobTitle
     ).length + 1;
@@ -582,7 +645,6 @@ app.post('/optimize', async (req, res) => {
     const resumeFileName = `resume-v${version}-${safeCompany}-${safeTitle}.docx`;
     const resumePdfFileName = `resume-v${version}-${safeCompany}-${safeTitle}.pdf`;
     const coverLetterFileName = `coverletter-v${version}-${safeCompany}-${safeTitle}.docx`;
-    console.log(`[Server] Filenames: ${resumeFileName}, ${resumePdfFileName}, ${coverLetterFileName}`);
 
     const resumeFilePath = path.join(__dirname, 'output', resumeFileName);
     const resumePdfFilePath = path.join(__dirname, 'output', resumePdfFileName);
@@ -591,15 +653,10 @@ app.post('/optimize', async (req, res) => {
     const keywordStrings = (keywords.keywords || []).map(k => k.keyword);
 
     await generateResumeDOCX(rewrittenResume, keywordStrings, jobTitle, companyName, resumeFilePath, masterResume.text);
-    console.log('[Server] Resume DOCX saved:', resumeFileName);
-
     await generateResumePDF(rewrittenResume, keywordStrings, resumePdfFilePath, masterResume.text);
-    console.log('[Server] Resume PDF saved:', resumePdfFileName);
-
     await generateCoverLetterDOCX(coverLetterText, keywordStrings, jobTitle, companyName, coverLetterFilePath);
-    console.log('[Server] Cover letter DOCX saved:', coverLetterFileName);
+    console.log('[Server] All output files saved');
 
-    // Build history entry
     const historyEntry = {
       id: optimizationId,
       jobTitle: jobTitle || 'Unknown Title',
@@ -616,6 +673,8 @@ app.post('/optimize', async (req, res) => {
       matchScore: scoring.matchScore,
       originalScore: scoring.originalScore,
       keywordDetails: scoring.details,
+      retryAttempts: attemptsMade,
+      belowThreshold,
       resumePath: `/output/${resumeFileName}`,
       resumePdfPath: `/output/${resumePdfFileName}`,
       coverLetterPath: `/output/${coverLetterFileName}`,
@@ -629,7 +688,7 @@ app.post('/optimize', async (req, res) => {
     saveHistory();
 
     console.log('[Server] ═══════════════════════════════════════');
-    console.log('[Server] Optimization complete!');
+    console.log(`[Server] Optimization complete! Score: ${scoring.matchScore}% | Attempts: ${attemptsMade}`);
 
     res.json({
       id: optimizationId,
@@ -639,6 +698,8 @@ app.post('/optimize', async (req, res) => {
       keywordDetails: scoring.details,
       rewrittenResume,
       coverLetterText,
+      retryAttempts: attemptsMade,
+      belowThreshold,
       resumePath: `/output/${resumeFileName}`,
       resumePdfPath: `/output/${resumePdfFileName}`,
       coverLetterPath: `/output/${coverLetterFileName}`,

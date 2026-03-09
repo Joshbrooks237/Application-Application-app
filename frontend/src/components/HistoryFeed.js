@@ -58,6 +58,16 @@ export default function HistoryFeed({ history, onSelect }) {
                       {item.tone}
                     </span>
                   )}
+                  {item.retryAttempts > 1 && (
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-surface-overlay text-slate-500">
+                      {item.retryAttempts} attempts
+                    </span>
+                  )}
+                  {item.belowThreshold && (
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-yellow-900/40 text-yellow-400 border border-yellow-600/30">
+                      ⚠ Low match
+                    </span>
+                  )}
                 </div>
               </div>
               <div className="flex items-center gap-4">
