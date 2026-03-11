@@ -1,5 +1,5 @@
 import React, { memo, useCallback, useRef, useEffect, useState } from 'react';
-import { FixedSizeList as List } from 'react-window';
+import { List } from 'react-window';
 
 const ITEM_HEIGHT = 110;
 const MAX_VISIBLE_HEIGHT = 700;
@@ -83,6 +83,16 @@ export default function HistoryFeed({ history, onSelect }) {
     onSelect(id);
   }, [onSelect]);
 
+  const Row = useCallback(({ index, style }) => {
+    if (!history || !history[index]) return null;
+    const item = history[index];
+    return (
+      <div style={{ ...style, paddingBottom: 8 }}>
+        <HistoryCard item={item} onClick={() => handleSelect(item.id)} />
+      </div>
+    );
+  }, [history, handleSelect]);
+
   if (!history || history.length === 0) {
     return (
       <div className="animate-fadeInUp">
@@ -98,15 +108,6 @@ export default function HistoryFeed({ history, onSelect }) {
   }
 
   const listHeight = Math.min(history.length * ITEM_HEIGHT, MAX_VISIBLE_HEIGHT);
-
-  const Row = useCallback(({ index, style }) => {
-    const item = history[index];
-    return (
-      <div style={{ ...style, paddingBottom: 8 }}>
-        <HistoryCard item={item} onClick={() => handleSelect(item.id)} />
-      </div>
-    );
-  }, [history, handleSelect]);
 
   return (
     <div className="animate-fadeInUp" ref={containerRef}>
