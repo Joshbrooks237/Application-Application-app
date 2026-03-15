@@ -1024,7 +1024,12 @@ app.post('/answer-question', async (req, res) => {
     // Generate answer
     const systemPrompt = `You are an expert job application assistant. Using only the candidate's actual experience from their resume, generate a specific, honest, compelling answer to the following job application question. Sound human and natural. Use real examples and real metrics from their background. Never fabricate experience. Keep answers concise — 2 to 4 sentences for short answer fields, up to one paragraph for longer fields. Always lead with a specific real example not a generic statement.
 
-Try to identify the TARGET company name and job position from the page URL, page title, or surrounding page context provided. If you can identify them, use them naturally in the answer. If you CANNOT confidently identify the company name or position — do not guess, do not use any tool name or product name — just answer the question directly and professionally without mentioning any company name at all.`;
+Try to identify the TARGET company name and job position from the page URL, page title, or surrounding page context provided. If you can identify them, use them naturally in the answer. If you CANNOT confidently identify the company name or position — do not guess — just answer the question directly and professionally without mentioning any company name at all.
+
+CRITICAL RULES:
+- NEVER mention "Indeeeed Optimizer", "Indeeeed", "Rio Brave", "Rio Brave LLC", or any AI tool/app/software the candidate may have built — these must NEVER appear in any generated answer.
+- The candidate's personal software projects, apps, or AI tools should ONLY be referenced if the job is explicitly in tech, AI, or software development AND the question specifically asks about relevant projects or technical experience.
+- For all other roles (customer service, leasing, sales, medical, property management, administrative, etc.) — draw ONLY from the candidate's professional work experience at real employers. Do not mention side projects, personal apps, or startup ventures unless they are directly relevant to the role being applied for.`;
 
     const contextParts = [`Question: ${question}`];
     if (pageContext?.companyName) contextParts.push(`Company (from page): ${pageContext.companyName}`);
@@ -1160,7 +1165,7 @@ app.post('/answers/:id/regenerate', async (req, res) => {
   }
 
   try {
-    const systemPrompt = `You are an expert job application assistant. Generate a DIFFERENT answer to this question than the previous attempts. Use a different angle, different examples from the resume, or a different structure. Still be honest and use only real experience. 2-4 sentences.\n\nPrevious answers to avoid repeating:\n${entry.versions.map((v, i) => `Version ${i + 1}: ${v.answer}`).join('\n')}`;
+    const systemPrompt = `You are an expert job application assistant. Generate a DIFFERENT answer to this question than the previous attempts. Use a different angle, different examples from the resume, or a different structure. Still be honest and use only real experience. 2-4 sentences. NEVER mention "Indeeeed Optimizer", "Indeeeed", "Rio Brave", "Rio Brave LLC", or any AI tool/app the candidate built. For non-tech roles, use only professional work experience.\n\nPrevious answers to avoid repeating:\n${entry.versions.map((v, i) => `Version ${i + 1}: ${v.answer}`).join('\n')}`;
 
     const contextParts = [`Question: ${entry.question}`];
     if (entry.pageContext?.companyName) contextParts.push(`Company: ${entry.pageContext.companyName}`);
@@ -1221,6 +1226,8 @@ app.post('/answer-batch', async (req, res) => {
     if (pageContext?.url) contextParts.push(`URL: ${pageContext.url}`);
 
     const systemPrompt = `You are an expert job application assistant. You will receive a list of form fields from a job application page and the candidate's resume. For each field, generate the best answer using ONLY the candidate's real experience. Be specific, honest, and concise. For name fields use the candidate's name. For contact fields use their contact info. For short fields (name, city, phone, etc.) give just the value. For longer questions give 1-4 sentences.
+
+CRITICAL: NEVER mention "Indeeeed Optimizer", "Indeeeed", "Rio Brave", "Rio Brave LLC", or any AI tool/app the candidate may have built. For non-tech roles, draw ONLY from professional work experience at real employers — no side projects or personal apps.
 
 Return a JSON array where each element corresponds to a field in order:
 [{"fieldIndex": 0, "answer": "..."}, {"fieldIndex": 1, "answer": "..."}, ...]
