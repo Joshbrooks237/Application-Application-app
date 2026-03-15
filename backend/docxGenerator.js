@@ -322,19 +322,28 @@ async function generateCoverLetterDOCX(coverLetterText, keywords, jobTitle, comp
   // Strip date lines, salutations, and signatures the AI may have included
   // since the DOCX template adds its own
   const rawParagraphs = coverLetterText.split('\n\n').filter(p => p.trim());
-  const bodyParagraphs = rawParagraphs.filter(p => {
-    const trimmed = p.trim().toLowerCase();
+  const bodyParagraphs = [];
+
+  for (const p of rawParagraphs) {
+    const trimmed = p.trim();
+    const lower = trimmed.toLowerCase();
     // Skip date-only lines (e.g. "March 12, 2026" or "03/12/2026")
-    if (/^\w+\s+\d{1,2},?\s+\d{4}$/.test(p.trim())) return false;
-    if (/^\d{1,2}[\/-]\d{1,2}[\/-]\d{2,4}$/.test(p.trim())) return false;
+    if (/^\w+\s+\d{1,2},?\s+\d{4}$/.test(trimmed)) continue;
+    if (/^\d{1,2}[\/-]\d{1,2}[\/-]\d{2,4}$/.test(trimmed)) continue;
     // Skip standalone salutations
-    if (/^dear\s+/i.test(trimmed) && trimmed.length < 60) return false;
-    // Skip standalone closing signatures
-    if (/^(sincerely|regards|best regards|warm regards|respectfully|warmly),?\s*$/i.test(trimmed)) return false;
-    // Skip name-only lines after signature (just a name, < 40 chars, no punctuation)
-    if (trimmed.length < 40 && /^[a-z\s.\-']+$/i.test(trimmed) && !trimmed.includes(' the ') && !trimmed.includes(' and ')) return false;
-    return true;
-  });
+    if (/^dear\s+/i.test(lower) && lower.length < 60) continue;
+    // Skip any paragraph that starts with a closing keyword (catches
+    // "Sincerely,", "Sincerely,\nJoshua Brooks", "Sincerely, Joshua Brooks", etc.)
+    if (/^(sincerely|regards|best regards|warm regards|respectfully|warmly|thank you)\b/i.test(lower)) continue;
+    // Skip name-only lines after signature (just a name, < 40 chars)
+    if (trimmed.length < 40 && /^[a-z\s.\-']+$/i.test(trimmed) && !lower.includes(' the ') && !lower.includes(' and ')) continue;
+
+    // If a body paragraph ends with a signature block appended via single newline,
+    // strip the trailing signature portion
+    const sigPattern = /\n\s*(sincerely|regards|best regards|warm regards|respectfully|warmly|thank you)\b.*$/is;
+    const cleaned = trimmed.replace(sigPattern, '').trim();
+    if (cleaned) bodyParagraphs.push(cleaned);
+  }
 
   const children = [];
 
