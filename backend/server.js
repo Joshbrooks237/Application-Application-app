@@ -437,8 +437,11 @@ function extractCandidateName(resumeText) {
     if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(line)) continue; // email only
     // A name line is typically short (under 50 chars) and mostly letters
     if (line.length < 50 && /^[A-Za-z\s.\-']+$/.test(line) && line.split(/\s+/).length <= 5) {
-      console.log('[Server] Extracted candidate name:', line);
-      return line;
+      const name = line === line.toUpperCase()
+        ? line.toLowerCase().replace(/\b\w/g, c => c.toUpperCase())
+        : line;
+      console.log('[Server] Extracted candidate name:', name);
+      return name;
     }
   }
   return '';
