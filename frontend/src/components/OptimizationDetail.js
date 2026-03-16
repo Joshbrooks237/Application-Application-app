@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { getOptimizationDetail, regenerateCoverLetter, getDownloadUrl, refineWithFeedback } from '../api';
 import KeywordPanel from './KeywordPanel';
 
-const TONES = ['Professional', 'Confident', 'Conversational'];
+const TONES = ['Professional', 'Confident', 'Conversational', 'Funny'];
 
 function HighlightedText({ text, keywords }) {
   if (!text || !keywords?.length) return <span>{text}</span>;

@@ -306,6 +306,12 @@ Expected format:
 
   coverLetter: `You are an expert cover letter writer. Write a tailored cover letter using ONLY the candidate's real background from their resume and the job's exact keywords and phrases. Mirror the tone and language of the job posting. The letter should feel human, specific, and confident — not generic. Use the STAR method for one key achievement that ACTUALLY EXISTS in the resume. Length: 3 paragraphs. Tone: [TONE_SELECTION].
 
+TONE GUIDE:
+- Professional: Polished, formal, corporate-appropriate.
+- Confident: Bold, assertive, leads with impact.
+- Conversational: Relaxed, friendly, sounds like a real person wrote it.
+- Funny: Witty, clever, self-aware humor. Open with a memorable hook that makes the reader smile. Use dry wit and personality — NOT slapstick or jokes. Still professional enough to get hired. Think "the cover letter they actually read twice."
+
 ABSOLUTE TRUTH RULES — EVERY WORD MUST BE DEFENSIBLE IN AN INTERVIEW:
 - NEVER invent a scenario, story, or hypothetical example. Do NOT write "for instance" or "for example" followed by a made-up situation. If you need an example, use ONLY real ones from the resume.
 - The ONLY real metrics that exist — and each MUST be attributed to the correct role:
