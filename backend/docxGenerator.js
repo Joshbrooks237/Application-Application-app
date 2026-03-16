@@ -31,7 +31,9 @@ function extractContactInfo(resumeText) {
     if (/^(professional\s+summary|core\s+skills|experience|education|objective)/i.test(line)) break;
     // First qualifying line is the name
     if (!name && line.length < 60 && /^[A-Za-z\s.\-']+$/.test(line)) {
-      name = line;
+      name = line === line.toUpperCase()
+        ? line.toLowerCase().replace(/\b\w/g, c => c.toUpperCase())
+        : line;
       continue;
     }
     // Lines with email, phone, or pipe separators are contact info
