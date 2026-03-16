@@ -7,6 +7,7 @@ const fs = require('fs');
 const mammoth = require('mammoth');
 const { execSync } = require('child_process');
 const OpenAI = require('openai');
+const Anthropic = require('@anthropic-ai/sdk');
 const { generateResumeDOCX, generateCoverLetterDOCX } = require('./docxGenerator');
 const { generateResumePDF } = require('./pdfGenerator');
 
@@ -17,6 +18,10 @@ const PORT = process.env.PORT || 3001;
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 });
+
+const anthropic = process.env.ANTHROPIC_API_KEY
+  ? new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+  : null;
 
 // ── Ensure required directories exist (Railway ephemeral filesystem) ──
 ['output', 'uploads', 'data'].forEach(dir => {
@@ -85,7 +90,7 @@ const PROFILES_PATH = path.join(DATA_DIR, 'profiles.json');
 const HISTORY_PATH = path.join(DATA_DIR, 'optimization-history.json');
 const LEGACY_RESUME_PATH = path.join(DATA_DIR, 'master-resume.json');
 
-let profiles = [];          // [{ id, name, emoji, text, fileName, filePath, uploadedAt }]
+let profiles = [];          // [{ id, name, emoji, text, fileName, filePath, uploadedAt, voiceProfiles, activeVoiceProfileId }]
 let activeProfileId = null;
 let optimizationHistory = [];
 
@@ -94,6 +99,13 @@ let answerLibrary = [];
 
 function getActiveProfile() {
   return profiles.find(p => p.id === activeProfileId) || null;
+}
+
+function getActiveVoiceText(profile) {
+  if (!profile?.voiceProfiles?.length) return '';
+  const slot = profile.voiceProfiles.find(v => v.id === profile.activeVoiceProfileId)
+    || profile.voiceProfiles[0];
+  return slot?.text || '';
 }
 
 // Backward compat: migrate old single-resume to first profile
@@ -367,7 +379,7 @@ async function extractKeywords(jobDescription) {
   }
 }
 
-function buildResumeUserContent(resumeText, keywords) {
+function buildResumeUserContent(resumeText, keywords, voiceText) {
   const allItems = keywords.keywords || [];
   const singleKeywords = allItems.filter(k => k.type !== 'phrase');
   const phrases = allItems.filter(k => k.type === 'phrase');
@@ -379,21 +391,26 @@ function buildResumeUserContent(resumeText, keywords) {
     .map(k => `[phrase] "${k.keyword}" (${k.category}, importance: ${k.importance})`)
     .join('\n');
 
-  return `Master Resume:\n${resumeText}\n\n---\nATS Keywords:\n${keywordList}\n\n---\nATS Phrases (use these EXACT multi-word phrases):\n${phraseList}`;
+  let content = `Master Resume:\n${resumeText}`;
+  if (voiceText) {
+    content += `\n\n---\nVOICE PROFILE — This captures the candidate's communication style, real stories, and what makes them memorable. Use this to make the resume sound genuinely like this person:\n${voiceText}`;
+  }
+  content += `\n\n---\nATS Keywords:\n${keywordList}\n\n---\nATS Phrases (use these EXACT multi-word phrases):\n${phraseList}`;
+  return content;
 }
 
-async function rewriteResume(resumeText, keywords) {
-  return rewriteResumeWithStrategy(resumeText, keywords, null);
+async function rewriteResume(resumeText, keywords, voiceText) {
+  return rewriteResumeWithStrategy(resumeText, keywords, null, voiceText);
 }
 
-async function rewriteResumeWithStrategy(resumeText, keywords, retryInstruction) {
+async function rewriteResumeWithStrategy(resumeText, keywords, retryInstruction, voiceText) {
   const systemPrompt = retryInstruction
     ? `${PROMPTS.resumeRewrite}\n\n${retryInstruction}`
     : PROMPTS.resumeRewrite;
 
   const raw = await callOpenAI(
     systemPrompt,
-    buildResumeUserContent(resumeText, keywords),
+    buildResumeUserContent(resumeText, keywords, voiceText),
     retryInstruction ? 'Resume Rewrite (retry)' : 'Resume Rewrite'
   );
 
@@ -486,6 +503,16 @@ async function generateCoverLetter(jobDescription, resumeSummary, keywords, tone
     console.log('[Server] Personal note included in cover letter prompt:', personalNote.trim().substring(0, 80) + '...');
   }
 
+  const voiceText = meta.voiceText || '';
+  if (voiceText) {
+    contentParts.push(
+      ``,
+      `---`,
+      `VOICE PROFILE — This captures the candidate's communication style, real stories, and what makes them memorable. Use this to make the letter sound genuinely like this person:`,
+      voiceText
+    );
+  }
+
   contentParts.push(
     ``,
     `---`,
@@ -558,7 +585,13 @@ app.get('/profiles', (req, res) => {
     profiles: profiles.map(p => ({
       id: p.id, name: p.name, emoji: p.emoji,
       fileName: p.fileName, textLength: p.text?.length || 0,
-      uploadedAt: p.uploadedAt
+      uploadedAt: p.uploadedAt,
+      voiceProfiles: (p.voiceProfiles || []).map(v => ({
+        id: v.id, name: v.name,
+        textLength: v.text?.length || 0,
+        createdAt: v.createdAt, updatedAt: v.updatedAt
+      })),
+      activeVoiceProfileId: p.activeVoiceProfileId || null
     })),
     activeProfileId
   });
@@ -646,6 +679,113 @@ app.post('/profiles/:id/activate', (req, res) => {
   saveProfiles();
   console.log(`[Server] Active profile switched to: ${profile.name}`);
   res.json({ success: true, activeProfileId });
+});
+
+// ── Voice Profile Routes ──
+
+app.get('/profiles/:id/voice-profiles', (req, res) => {
+  const profile = profiles.find(p => p.id === req.params.id);
+  if (!profile) return res.status(404).json({ error: 'Profile not found' });
+
+  res.json({
+    voiceProfiles: profile.voiceProfiles || [],
+    activeVoiceProfileId: profile.activeVoiceProfileId || null
+  });
+});
+
+app.post('/profiles/:id/voice-profiles', upload.single('voiceFile'), async (req, res) => {
+  const profile = profiles.find(p => p.id === req.params.id);
+  if (!profile) return res.status(404).json({ error: 'Profile not found' });
+
+  const { name, text } = req.body;
+  let voiceText = text || '';
+
+  if (req.file) {
+    try {
+      voiceText = await parseResume(req.file.path);
+    } catch (err) {
+      return res.status(400).json({ error: 'Could not read voice profile file: ' + err.message });
+    }
+  }
+
+  if (!voiceText || voiceText.trim().length < 10) {
+    return res.status(400).json({ error: 'Voice profile text is too short' });
+  }
+
+  if (!profile.voiceProfiles) profile.voiceProfiles = [];
+
+  const slot = {
+    id: `vp-${Date.now()}`,
+    name: (name || 'Default').trim(),
+    text: voiceText.trim(),
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  };
+
+  profile.voiceProfiles.push(slot);
+  if (!profile.activeVoiceProfileId) profile.activeVoiceProfileId = slot.id;
+  saveProfiles();
+
+  console.log(`[Server] Voice profile created: "${slot.name}" for ${profile.name}`);
+  res.json({ success: true, voiceProfile: slot });
+});
+
+app.put('/profiles/:id/voice-profiles/:slotId', upload.single('voiceFile'), async (req, res) => {
+  const profile = profiles.find(p => p.id === req.params.id);
+  if (!profile) return res.status(404).json({ error: 'Profile not found' });
+
+  const slot = (profile.voiceProfiles || []).find(v => v.id === req.params.slotId);
+  if (!slot) return res.status(404).json({ error: 'Voice profile slot not found' });
+
+  const { name, text } = req.body;
+  if (name) slot.name = name.trim();
+
+  if (req.file) {
+    try {
+      slot.text = await parseResume(req.file.path);
+    } catch (err) {
+      return res.status(400).json({ error: 'Could not read voice profile file: ' + err.message });
+    }
+  } else if (text !== undefined) {
+    slot.text = text.trim();
+  }
+
+  slot.updatedAt = new Date().toISOString();
+  saveProfiles();
+
+  console.log(`[Server] Voice profile updated: "${slot.name}" for ${profile.name}`);
+  res.json({ success: true, voiceProfile: slot });
+});
+
+app.delete('/profiles/:id/voice-profiles/:slotId', (req, res) => {
+  const profile = profiles.find(p => p.id === req.params.id);
+  if (!profile) return res.status(404).json({ error: 'Profile not found' });
+
+  const idx = (profile.voiceProfiles || []).findIndex(v => v.id === req.params.slotId);
+  if (idx === -1) return res.status(404).json({ error: 'Voice profile slot not found' });
+
+  const removed = profile.voiceProfiles.splice(idx, 1)[0];
+  if (profile.activeVoiceProfileId === removed.id) {
+    profile.activeVoiceProfileId = profile.voiceProfiles[0]?.id || null;
+  }
+  saveProfiles();
+
+  console.log(`[Server] Voice profile deleted: "${removed.name}" from ${profile.name}`);
+  res.json({ success: true, activeVoiceProfileId: profile.activeVoiceProfileId });
+});
+
+app.post('/profiles/:id/voice-profiles/:slotId/activate', (req, res) => {
+  const profile = profiles.find(p => p.id === req.params.id);
+  if (!profile) return res.status(404).json({ error: 'Profile not found' });
+
+  const slot = (profile.voiceProfiles || []).find(v => v.id === req.params.slotId);
+  if (!slot) return res.status(404).json({ error: 'Voice profile slot not found' });
+
+  profile.activeVoiceProfileId = slot.id;
+  saveProfiles();
+
+  console.log(`[Server] Active voice profile: "${slot.name}" for ${profile.name}`);
+  res.json({ success: true, activeVoiceProfileId: slot.id });
 });
 
 // ── Legacy + Core Routes ──
@@ -829,8 +969,9 @@ app.post('/optimize', async (req, res) => {
 
       // Step 2: Rewrite resume (with optional retry instruction prepended)
       console.log(`[Server] Attempt ${attempt + 1}: Rewriting resume...`);
+      const voiceText = getActiveVoiceText(masterResume);
       const rewrittenResume = await rewriteResumeWithStrategy(
-        masterResume.text, keywords, strategy ? strategy.instruction : null
+        masterResume.text, keywords, strategy ? strategy.instruction : null, voiceText
       );
       console.log('[Server] Resume rewritten successfully');
 
@@ -855,7 +996,8 @@ app.post('/optimize', async (req, res) => {
             candidateName: extractCandidateName(masterResume.text),
             companyName: companyName || 'the company',
             jobTitle: jobTitle || 'the position',
-            resumeText: masterResume.text
+            resumeText: masterResume.text,
+            voiceText: getActiveVoiceText(masterResume)
           }
         );
 
@@ -969,17 +1111,19 @@ app.post('/regenerate-cover-letter', async (req, res) => {
   }
 
   try {
+    const activeProf = getActiveProfile();
     const coverLetterText = await generateCoverLetter(
       entry.fullDescription,
       entry.rewrittenResume.summary,
       { keywords: entry.keywords },
       tone,
       {
-        candidateName: extractCandidateName(getActiveProfile()?.text || entry.originalResumeText || ''),
+        candidateName: extractCandidateName(activeProf?.text || entry.originalResumeText || ''),
         companyName: entry.companyName || 'the company',
         jobTitle: entry.jobTitle || 'the position',
-        resumeText: getActiveProfile()?.text || entry.originalResumeText || '',
-        personalNote: personalNote || ''
+        resumeText: activeProf?.text || entry.originalResumeText || '',
+        personalNote: personalNote || '',
+        voiceText: getActiveVoiceText(activeProf)
       }
     );
 
@@ -991,18 +1135,35 @@ app.post('/regenerate-cover-letter', async (req, res) => {
     const keywordStrings = entry.keywords.map(k => k.keyword);
     await generateCoverLetterDOCX(coverLetterText, keywordStrings, entry.jobTitle, entry.companyName, coverLetterFilePath, extractCandidateName(getActiveProfile()?.text || entry.originalResumeText || ''));
 
+    if (!entry.coverLetterVersions) entry.coverLetterVersions = [];
+    if (entry.coverLetterText && entry.coverLetterVersions.length === 0) {
+      entry.coverLetterVersions.push({
+        text: entry.coverLetterText,
+        tone: entry.tone || 'Professional',
+        generatedAt: entry.optimizedAt || new Date().toISOString()
+      });
+    }
+    entry.coverLetterVersions.push({
+      text: coverLetterText,
+      tone,
+      generatedAt: new Date().toISOString()
+    });
+
     entry.coverLetterText = coverLetterText;
     entry.tone = tone;
     entry.personalNote = personalNote || '';
     entry.coverLetterPath = `/output/${coverLetterFileName}`;
     entry.coverLetterFileName = coverLetterFileName;
+    entry.selectedCoverLetterVersion = entry.coverLetterVersions.length - 1;
     saveHistory();
 
-    console.log('[Server] Cover letter regenerated successfully');
+    console.log(`[Server] Cover letter regenerated (version ${entry.coverLetterVersions.length})`);
     res.json({
       coverLetterText,
       coverLetterPath: `/output/${coverLetterFileName}`,
-      coverLetterFileName
+      coverLetterFileName,
+      versionCount: entry.coverLetterVersions.length,
+      selectedVersion: entry.selectedCoverLetterVersion
     });
   } catch (err) {
     console.error('[Server] Cover letter regeneration failed:', err.message);
@@ -1072,6 +1233,11 @@ CRITICAL RULES:
     if (pageContext?.url) contextParts.push(`Page URL: ${pageContext.url}`);
     if (pageContext?.pageTitle) contextParts.push(`Page Title: ${pageContext.pageTitle}`);
     contextParts.push(`\n---\nCandidate Resume:\n${profile.text}`);
+
+    const voiceText = getActiveVoiceText(profile);
+    if (voiceText) {
+      contextParts.push(`\n---\nVOICE PROFILE — The candidate's communication style, real stories, and what makes them memorable. Use this to sound genuinely like them:\n${voiceText}`);
+    }
 
     if (similar) {
       contextParts.push(`\n---\nA similar question was previously answered. Here is the previous answer for reference (improve upon it, don't copy verbatim):\n${similar.versions[similar.selectedVersion]?.answer || similar.answer}`);
@@ -1207,6 +1373,11 @@ app.post('/answers/:id/regenerate', async (req, res) => {
     if (entry.pageContext?.roleTitle) contextParts.push(`Role: ${entry.pageContext.roleTitle}`);
     contextParts.push(`\n---\nCandidate Resume:\n${profile.text}`);
 
+    const voiceText = getActiveVoiceText(profile);
+    if (voiceText) {
+      contextParts.push(`\n---\nVOICE PROFILE — The candidate's communication style and real stories. Sound like them:\n${voiceText}`);
+    }
+
     const answer = await callOpenAI(systemPrompt, contextParts.join('\n'), 'Answer Regeneration');
 
     entry.versions.push({ answer, generatedAt: new Date().toISOString() });
@@ -1271,7 +1442,11 @@ Return a JSON array where each element corresponds to a field in order:
 
 Return ONLY valid JSON, no markdown, no explanation.`;
 
-    const userContent = `${contextParts.join('\n')}\n\n---\nForm Fields:\n${fieldDescriptions}\n\n---\nCandidate Resume:\n${profile.text}`;
+    const batchVoice = getActiveVoiceText(profile);
+    let userContent = `${contextParts.join('\n')}\n\n---\nForm Fields:\n${fieldDescriptions}\n\n---\nCandidate Resume:\n${profile.text}`;
+    if (batchVoice) {
+      userContent += `\n\n---\nVOICE PROFILE — Sound like this person:\n${batchVoice}`;
+    }
 
     const raw = await callOpenAI(systemPrompt, userContent, 'Batch Answer Generation');
     const cleaned = raw.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
@@ -1307,6 +1482,124 @@ Return ONLY valid JSON, no markdown, no explanation.`;
   }
 });
 
+// ── Cover Letter Version Selection ──
+
+app.post('/history/:id/select-cover-letter-version', (req, res) => {
+  const entry = optimizationHistory.find(h => h.id === req.params.id);
+  if (!entry) return res.status(404).json({ error: 'Optimization not found' });
+  if (!entry.coverLetterVersions?.length) return res.status(400).json({ error: 'No versions available' });
+
+  const { version } = req.body;
+  if (version < 0 || version >= entry.coverLetterVersions.length) {
+    return res.status(400).json({ error: 'Invalid version' });
+  }
+
+  entry.selectedCoverLetterVersion = version;
+  entry.coverLetterText = entry.coverLetterVersions[version].text;
+  entry.tone = entry.coverLetterVersions[version].tone;
+  saveHistory();
+
+  console.log(`[Server] Cover letter version selected: ${entry.id} → v${version}`);
+  res.json({ success: true, coverLetterText: entry.coverLetterText });
+});
+
+// ── Auto-Archive Old Answers (>30 days) ──
+
+function archiveOldAnswers() {
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+  let archived = 0;
+  answerLibrary.forEach(a => {
+    if (!a.archived && a.generatedAt < thirtyDaysAgo) {
+      a.archived = true;
+      archived++;
+    }
+  });
+  if (archived > 0) {
+    saveAnswers();
+    console.log(`[Server] Auto-archived ${archived} answers older than 30 days`);
+  }
+}
+
+// ── Claude-Powered Feedback Refinement ──
+
+app.post('/refine-with-feedback', async (req, res) => {
+  const { originalOutput, feedback, type, context } = req.body;
+  console.log('[Server] ── Refine with Feedback ──');
+  console.log(`[Server] Type: ${type}, Feedback: ${feedback?.substring(0, 100)}`);
+
+  if (!originalOutput || !feedback) {
+    return res.status(400).json({ error: 'Original output and feedback are required' });
+  }
+
+  const profile = getActiveProfile();
+  if (!profile) {
+    return res.status(400).json({ error: 'No active profile' });
+  }
+
+  const voiceText = getActiveVoiceText(profile);
+
+  try {
+    let refinedInstructions;
+
+    if (anthropic) {
+      const claudeMessage = await anthropic.messages.create({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1024,
+        system: `You are a writing coach who interprets human feedback and translates it into precise instructions for a content generator. You understand nuance — when someone says "too stiff" they mean use shorter sentences and contractions. When they say "sound more like me" they mean match the voice profile. When they say "lead with San Antonio" they mean restructure to open with that experience.
+
+Your job: read the original output, the user's feedback, the candidate's voice profile, and their resume. Then return CLEAR, SPECIFIC rewriting instructions that another AI can follow exactly. Be precise about what to change, what to keep, and what tone to hit.
+
+Return ONLY the rewriting instructions, nothing else.`,
+        messages: [{
+          role: 'user',
+          content: `ORIGINAL OUTPUT:\n${originalOutput}\n\nUSER FEEDBACK:\n${feedback}\n\n${voiceText ? `VOICE PROFILE:\n${voiceText}\n\n` : ''}RESUME:\n${profile.text.substring(0, 3000)}`
+        }]
+      });
+
+      refinedInstructions = claudeMessage.content[0].text;
+      console.log('[Server] Claude refined instructions generated');
+    } else {
+      refinedInstructions = `The user gave this feedback on the previous output: "${feedback}". Rewrite the output to address this feedback while keeping it honest and based on real resume experience.`;
+      console.log('[Server] Claude unavailable, using direct feedback passthrough');
+    }
+
+    const systemPrompt = type === 'cover_letter'
+      ? `${PROMPTS.coverLetter.replace('[TONE_SELECTION]', context?.tone || 'Professional')}\n\nREFINEMENT INSTRUCTIONS (from user feedback — follow these precisely):\n${refinedInstructions}`
+      : `You are an expert job application assistant. Generate a refined answer based on the instructions below. Use only real experience from the resume. 2-4 sentences. NEVER mention "Indeeeed Optimizer", "Indeeeed", "Rio Brave", or any AI tool.\n\nREFINEMENT INSTRUCTIONS:\n${refinedInstructions}`;
+
+    const userParts = [];
+    if (type === 'cover_letter' && context) {
+      userParts.push(`Candidate Name: ${context.candidateName || extractCandidateName(profile.text)}`);
+      userParts.push(`Company Name: ${context.companyName || 'the company'}`);
+      userParts.push(`Job Title: ${context.jobTitle || 'the position'}`);
+      if (context.jobDescription) userParts.push(`\n---\nJob Description:\n${context.jobDescription}`);
+    } else if (context?.question) {
+      userParts.push(`Question: ${context.question}`);
+    }
+    userParts.push(`\n---\nPrevious Output (to refine):\n${originalOutput}`);
+    userParts.push(`\n---\nCandidate Resume:\n${profile.text}`);
+    if (voiceText) userParts.push(`\n---\nVoice Profile:\n${voiceText}`);
+
+    const refined = await callOpenAI(systemPrompt, userParts.join('\n'), 'Feedback Refinement');
+
+    let cleanedOutput = refined.replace(/```\n?/g, '').trim();
+    if (type === 'cover_letter') {
+      const candidateName = context?.candidateName || extractCandidateName(profile.text);
+      cleanedOutput = replacePlaceholders(cleanedOutput, candidateName, context?.companyName || '', context?.jobTitle || '');
+    }
+
+    console.log('[Server] Refined output generated successfully');
+    res.json({
+      refined: cleanedOutput,
+      usedClaude: !!anthropic,
+      instructions: refinedInstructions
+    });
+  } catch (err) {
+    console.error('[Server] Feedback refinement failed:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // SPA catch-all: serve frontend for any route not handled by the API
 if (fs.existsSync(FRONTEND_BUILD)) {
   app.get('*', (req, res) => {
@@ -1316,6 +1609,7 @@ if (fs.existsSync(FRONTEND_BUILD)) {
 
 // ── Start Server ──
 loadPersistedData();
+archiveOldAnswers();
 
 const hasFrontend = fs.existsSync(FRONTEND_BUILD);
 app.listen(PORT, '0.0.0.0', () => {

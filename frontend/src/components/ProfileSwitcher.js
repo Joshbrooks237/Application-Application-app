@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { createProfile, activateProfile, updateProfile, deleteProfile } from '../api';
+import VoiceProfile from './VoiceProfile';
 
 const EMOJI_OPTIONS = ['📄', '👤', '👩', '👨', '🧑', '💼', '🎯', '⭐', '🔥', '💎', '🦊', '🐻', '🎸', '🎨'];
 
@@ -252,6 +253,12 @@ export default function ProfileSwitcher({ profiles, activeProfileId, onProfilesC
                   <p className="text-[10px] text-slate-600 mt-2 pl-13">
                     Uploaded {new Date(p.uploadedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                   </p>
+                )}
+
+                {isActive && (
+                  <div onClick={e => e.stopPropagation()}>
+                    <VoiceProfile profile={p} onChanged={onProfilesChanged} />
+                  </div>
                 )}
               </div>
             );

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getOptimizationDetail, regenerateCoverLetter, getDownloadUrl } from '../api';
+import { getOptimizationDetail, regenerateCoverLetter, getDownloadUrl, refineWithFeedback } from '../api';
 import KeywordPanel from './KeywordPanel';
 
 const TONES = ['Professional', 'Confident', 'Conversational'];
@@ -33,6 +33,8 @@ export default function OptimizationDetail({ optimizationId, onBack }) {
   const [tone, setTone] = useState('Professional');
   const [personalNote, setPersonalNote] = useState('');
   const [regenerating, setRegenerating] = useState(false);
+  const [feedback, setFeedback] = useState('');
+  const [refining, setRefining] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -68,6 +70,31 @@ export default function OptimizationDetail({ optimizationId, onBack }) {
       setError(`Failed to regenerate: ${err.message}`);
     } finally {
       setRegenerating(false);
+    }
+  };
+
+  const handleRefine = async () => {
+    if (!feedback.trim() || !data?.coverLetterText) return;
+    setRefining(true);
+    try {
+      const result = await refineWithFeedback(
+        data.coverLetterText,
+        feedback,
+        'cover_letter',
+        {
+          tone,
+          candidateName: '',
+          companyName: data.companyName,
+          jobTitle: data.jobTitle,
+          jobDescription: data.fullDescription
+        }
+      );
+      setData(prev => ({ ...prev, coverLetterText: result.refined }));
+      setFeedback('');
+    } catch (err) {
+      setError(`Refinement failed: ${err.message}`);
+    } finally {
+      setRefining(false);
     }
   };
 
@@ -313,6 +340,29 @@ export default function OptimizationDetail({ optimizationId, onBack }) {
             </div>
             <div className="p-6 text-sm text-slate-300 leading-relaxed whitespace-pre-wrap">
               <HighlightedText text={data.coverLetterText} keywords={keywordStrings} />
+            </div>
+            <div className="px-5 py-4 border-t border-surface-overlay bg-surface/50">
+              <label className="block text-xs font-semibold text-accent mb-1.5">Refine with Feedback</label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={feedback}
+                  onChange={e => setFeedback(e.target.value)}
+                  placeholder='e.g. "too stiff", "sound more like me", "lead with San Antonio"'
+                  className="flex-1 bg-surface-raised border border-surface-overlay rounded-lg px-3 py-2 text-xs text-slate-200
+                             placeholder-slate-500 focus:outline-none focus:border-accent/40"
+                  onKeyDown={e => { if (e.key === 'Enter' && !refining) handleRefine(); }}
+                />
+                <button
+                  onClick={handleRefine}
+                  disabled={refining || !feedback.trim()}
+                  className="px-4 py-2 text-xs font-bold bg-accent text-white rounded-lg hover:bg-accent/80
+                             transition-colors disabled:opacity-50 shrink-0"
+                >
+                  {refining ? 'Refining...' : 'Refine'}
+                </button>
+              </div>
+              <p className="text-[10px] text-slate-600 mt-1">Claude interprets your feedback and GPT-4o rewrites the letter</p>
             </div>
           </div>
         </div>

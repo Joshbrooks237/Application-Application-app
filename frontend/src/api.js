@@ -110,3 +110,69 @@ export async function regenerateAnswer(id) {
   if (!res.ok) throw new Error('Failed to regenerate');
   return res.json();
 }
+
+// ── Voice Profile API ──
+
+export async function getVoiceProfiles(profileId) {
+  const res = await fetch(`${API_BASE}/profiles/${profileId}/voice-profiles`);
+  if (!res.ok) throw new Error('Failed to load voice profiles');
+  return res.json();
+}
+
+export async function createVoiceProfile(profileId, { name, text, file }) {
+  if (file) {
+    const formData = new FormData();
+    formData.append('name', name || 'Default');
+    formData.append('voiceFile', file);
+    const res = await fetch(`${API_BASE}/profiles/${profileId}/voice-profiles`, { method: 'POST', body: formData });
+    if (!res.ok) { const err = await res.json(); throw new Error(err.error || 'Failed to create voice profile'); }
+    return res.json();
+  }
+  const res = await fetch(`${API_BASE}/profiles/${profileId}/voice-profiles`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name: name || 'Default', text })
+  });
+  if (!res.ok) { const err = await res.json(); throw new Error(err.error || 'Failed to create voice profile'); }
+  return res.json();
+}
+
+export async function updateVoiceProfile(profileId, slotId, { name, text, file }) {
+  if (file) {
+    const formData = new FormData();
+    if (name) formData.append('name', name);
+    formData.append('voiceFile', file);
+    const res = await fetch(`${API_BASE}/profiles/${profileId}/voice-profiles/${slotId}`, { method: 'PUT', body: formData });
+    if (!res.ok) { const err = await res.json(); throw new Error(err.error || 'Failed to update voice profile'); }
+    return res.json();
+  }
+  const res = await fetch(`${API_BASE}/profiles/${profileId}/voice-profiles/${slotId}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, text })
+  });
+  if (!res.ok) { const err = await res.json(); throw new Error(err.error || 'Failed to update voice profile'); }
+  return res.json();
+}
+
+export async function deleteVoiceProfile(profileId, slotId) {
+  const res = await fetch(`${API_BASE}/profiles/${profileId}/voice-profiles/${slotId}`, { method: 'DELETE' });
+  if (!res.ok) { const err = await res.json(); throw new Error(err.error || 'Failed to delete voice profile'); }
+  return res.json();
+}
+
+export async function activateVoiceProfile(profileId, slotId) {
+  const res = await fetch(`${API_BASE}/profiles/${profileId}/voice-profiles/${slotId}/activate`, { method: 'POST' });
+  if (!res.ok) { const err = await res.json(); throw new Error(err.error || 'Failed to activate voice profile'); }
+  return res.json();
+}
+
+export async function refineWithFeedback(originalOutput, feedback, type, context = {}) {
+  const res = await fetch(`${API_BASE}/refine-with-feedback`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ originalOutput, feedback, type, context })
+  });
+  if (!res.ok) { const err = await res.json(); throw new Error(err.error || 'Refinement failed'); }
+  return res.json();
+}
