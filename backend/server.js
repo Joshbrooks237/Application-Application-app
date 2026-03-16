@@ -407,6 +407,8 @@ TONE GUIDE — match your writing style to the selected tone:
 - Direct: No fluff, no filler, respects the reader's time. Short punchy sentences. Gets to the point in the first line. Every word earns its place.
 - Enthusiastic: High energy, genuinely excited about the opportunity. Infectious passion that feels authentic, not performative. Shows real research into the company.
 
+CLOSING SENTENCE RULE: The final sentence of the cover letter must be 18-25 words, confident and natural. Connect the candidate's real strengths to the role or company mission. Use concrete words like reliability, safety, service, results, impact, trust. NEVER use clichés like "I am excited to apply", "I look forward to the opportunity", "I would love to discuss", or "Thank you for your consideration." Write a closer that sounds like a real person making a real promise — not a form letter.
+
 ABSOLUTE TRUTH RULES — EVERY WORD MUST BE DEFENSIBLE IN AN INTERVIEW:
 - NEVER invent a scenario, story, or hypothetical example. Do NOT write "for instance" or "for example" followed by a made-up situation. If you need an example, use ONLY real ones from the resume.
 - The ONLY real metrics that exist — and each MUST be attributed to the correct role:
@@ -1133,6 +1135,10 @@ app.post('/optimize', async (req, res) => {
         if (attempt < MAX_RETRIES) {
           console.log('[Server] Will retry with next strategy...');
           continue;
+        }
+        if (bestResult) {
+          console.log(`[Server] All retries failed but we have a valid result from earlier (score: ${bestScore}%). Using that.`);
+          break;
         }
         throw parseErr;
       }
