@@ -33,6 +33,7 @@ const anthropic = process.env.ANTHROPIC_API_KEY
 app.use(cors({ origin: '*' }));
 app.use(express.json({ limit: '10mb' }));
 app.use('/output', express.static(path.join(__dirname, 'output')));
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Serve frontend build if it exists
 const FRONTEND_BUILD = path.join(__dirname, '..', 'frontend', 'build');
@@ -588,6 +589,7 @@ app.get('/profiles', (req, res) => {
       id: p.id, name: p.name, emoji: p.emoji,
       fileName: p.fileName, textLength: p.text?.length || 0,
       uploadedAt: p.uploadedAt,
+      filePath: p.filePath ? `/uploads/${path.basename(p.filePath)}` : null,
       voiceProfiles: (p.voiceProfiles || []).map(v => ({
         id: v.id, name: v.name,
         textLength: v.text?.length || 0,

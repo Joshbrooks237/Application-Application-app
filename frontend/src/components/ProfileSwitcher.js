@@ -255,6 +255,17 @@ export default function ProfileSwitcher({ profiles, activeProfileId, onProfilesC
                       className="hidden"
                       onChange={(e) => { handleReupload(p.id, e.target.files[0]); setEditingId(null); }}
                     />
+                    {p.filePath && (
+                      <a
+                        href={`${process.env.REACT_APP_API_URL || ''}${p.filePath}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="p-1.5 rounded-md hover:bg-surface-overlay text-slate-500 hover:text-slate-300 transition-colors"
+                        title="Open resume"
+                      >
+                        <span className="text-xs">📄</span>
+                      </a>
+                    )}
                     <button
                       onClick={() => { setEditingId(p.id); setTimeout(() => fileRef.current?.click(), 50); }}
                       className="p-1.5 rounded-md hover:bg-surface-overlay text-slate-500 hover:text-slate-300 transition-colors"
