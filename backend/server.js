@@ -23,6 +23,92 @@ const anthropic = process.env.ANTHROPIC_API_KEY
   ? new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
   : null;
 
+const MUSE_HOOKS = [
+  'a vivid real moment from their experience', 'a bold contrarian claim', 'a wry one-liner observation about the industry',
+  'a "nobody expected this" underdog story', 'a direct challenge to the reader', 'a quiet confident statement of fact',
+  'a question that makes the reader think', 'a short punchy declaration', 'a scene-setting moment like the opening of a film',
+  'a self-deprecating aside that reveals character', 'a surprising connection between two unrelated experiences',
+  'an honest admission that turns into a strength', 'a callback to something specific in the job posting',
+];
+const MUSE_RHYTHMS = [
+  'Short punchy sentences. Staccato. Let the facts hit.', 'Flowing narrative that builds momentum paragraph by paragraph.',
+  'Mix of short and long — punchy opener, then unfold into detail.', 'Conversational cadence — like telling a story over drinks.',
+  'Measured and deliberate — every word chosen with care.', 'Fast and energetic — match the pace to the excitement.',
+  'Start slow and quiet, then build to a crescendo of confidence.',
+];
+const MUSE_VIBES = [
+  'the person at the party who tells one great story and everyone remembers them',
+  'your smartest friend who somehow makes everything sound effortless',
+  'the coworker who everyone trusts to handle the hard conversation',
+  'someone who just got back from doing something amazing and is humbly excited about it',
+  'the person who makes you laugh mid-interview and you realize you want to work with them',
+  'a seasoned pro who has nothing to prove but proves it anyway',
+  'someone writing a letter to a company they genuinely admire',
+  'the candidate whose cover letter the hiring manager reads out loud to their team',
+  'a natural leader who communicates through stories, not bullet points',
+];
+
+function pickRandom(arr, n = 1) {
+  const shuffled = [...arr].sort(() => Math.random() - 0.5);
+  return n === 1 ? shuffled[0] : shuffled.slice(0, n);
+}
+
+async function claudeMuse(tone, voiceProfile, context) {
+  if (!anthropic) return null;
+
+  const hook = pickRandom(MUSE_HOOKS);
+  const rhythm = pickRandom(MUSE_RHYTHMS);
+  const vibe = pickRandom(MUSE_VIBES);
+  const seed = Math.floor(Math.random() * 10000);
+
+  try {
+    const msg = await anthropic.messages.create({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 600,
+      system: `You are a creative writing director. Your job is to generate precise, vivid VOICE DIRECTION that another AI will follow when writing a cover letter or answer.
+
+You don't write the actual content — you write the creative brief. Think of yourself as the director telling an actor exactly how to deliver a scene.
+
+IMPORTANT: Every brief you write must feel FRESH and DIFFERENT. Never repeat the same formula. You are given random creative seeds below — use them as starting inspiration, then riff in your own direction.
+
+Based on the tone, voice profile, and context, produce a short set of instructions (5-10 bullet points) covering:
+- Exact emotional register (warm but not syrupy, witty but not trying hard, etc.)
+- Sentence rhythm and pacing
+- What kind of opening hook to use — try something unexpected
+- Which real stories or experiences to lead with and WHY
+- Specific phrases or vocabulary that sound like THIS person
+- What to absolutely avoid (cliches, corporate buzzwords, specific patterns)
+- How to handle humor (if any) — dry? self-deprecating? observational?
+- The "vibe check" — if this letter were a person at a party, who would they be?
+
+Be specific and opinionated. Generic direction like "be professional" is useless. Say things like "Open with the 731-unit storage facility story but frame it as an underdog moment — nobody expected that turnaround." or "Write like someone who's genuinely excited but too cool to show it all at once."`,
+      messages: [{
+        role: 'user',
+        content: `Tone selected: ${tone}
+Creative seed #${seed}
+
+${voiceProfile ? `Voice Profile:\n${voiceProfile}\n` : '(No voice profile — invent a compelling voice based on the resume and tone. Be creative.)'}
+
+Context: ${context}
+
+RANDOM CREATIVE SEEDS (use as springboard, not prescription):
+- Try opening with: ${hook}
+- Sentence rhythm idea: ${rhythm}
+- Vibe target: ${vibe}
+
+Generate a UNIQUE creative direction. Surprise me. No two briefs should ever feel the same.`
+      }]
+    });
+
+    const direction = msg.content[0].text;
+    console.log(`[Claude Muse] Direction generated (${direction.length} chars) | tone: ${tone} | seed: ${seed} | hook: "${hook.substring(0, 40)}..."`);
+    return direction;
+  } catch (err) {
+    console.warn('[Claude Muse] Failed, proceeding without:', err.message);
+    return null;
+  }
+}
+
 // ── Ensure required directories exist (Railway ephemeral filesystem) ──
 ['output', 'uploads', 'data'].forEach(dir => {
   const dirPath = path.join(__dirname, dir);
@@ -306,11 +392,20 @@ Expected format:
 
   coverLetter: `You are an expert cover letter writer. Write a tailored cover letter using ONLY the candidate's real background from their resume and the job's exact keywords and phrases. Mirror the tone and language of the job posting. The letter should feel human, specific, and confident — not generic. Use the STAR method for one key achievement that ACTUALLY EXISTS in the resume. Length: 3 paragraphs. Tone: [TONE_SELECTION].
 
-TONE GUIDE:
-- Professional: Polished, formal, corporate-appropriate.
-- Confident: Bold, assertive, leads with impact.
-- Conversational: Relaxed, friendly, sounds like a real person wrote it.
-- Funny: Witty, clever, self-aware humor. Open with a memorable hook that makes the reader smile. Use dry wit and personality — NOT slapstick or jokes. Still professional enough to get hired. Think "the cover letter they actually read twice."
+PERSONALITY RULE — applies to ALL tones: This candidate has a natural sense of humor and it should come through in every cover letter. Include 1-2 witty moments — a punchy opening line, a self-aware aside, or a clever observation about the industry that makes the hiring manager smile. Be charming, not clownish. The goal is a cover letter that feels human and memorable — someone you'd actually want to grab coffee with. Still grounded in real experience, still clearly professional — just with enough personality that it doesn't read like everyone else's.
+
+TONE GUIDE — match your writing style to the selected tone:
+- Professional: Polished, formal, corporate-appropriate. Clean structure, measured language, zero slang.
+- Confident: Bold, assertive, leads with impact. "Here's what I bring" energy. Numbers up front.
+- Conversational: Relaxed, friendly, sounds like a real person wrote it over coffee. Natural rhythm, contractions welcome.
+- Casual: Laid-back and approachable, like texting a recruiter you already vibe with. Loose structure, real talk, zero corporate speak. Still shows competence — just doesn't try hard to prove it.
+- Funny: Witty, clever, self-aware humor. Open with a memorable hook that makes the reader smile. Dry wit and personality — NOT slapstick or jokes. Still professional enough to get hired. Think "the cover letter they actually read twice."
+- Fun: Light, upbeat, playful energy. Shows genuine excitement and personality without the sharp wit of Funny. Think "this person would be awesome to work with." Sprinkle in charm and positivity while keeping it real.
+- Storyteller: Narrative-driven. Open with a compelling moment or scene from the candidate's real experience. Pull the reader in like the first page of a book. Arc from challenge to impact.
+- Bold: Unapologetic, high-conviction, stands out from the pile. "You need someone who can do X — I already have" energy. Borders on audacious without being arrogant.
+- Warm: Empathetic, people-first, relationship-focused. Emphasizes teamwork, mentorship, community impact. Heart on sleeve but still substantive.
+- Direct: No fluff, no filler, respects the reader's time. Short punchy sentences. Gets to the point in the first line. Every word earns its place.
+- Enthusiastic: High energy, genuinely excited about the opportunity. Infectious passion that feels authentic, not performative. Shows real research into the company.
 
 ABSOLUTE TRUTH RULES — EVERY WORD MUST BE DEFENSIBLE IN AN INTERVIEW:
 - NEVER invent a scenario, story, or hypothetical example. Do NOT write "for instance" or "for example" followed by a made-up situation. If you need an example, use ONLY real ones from the resume.
@@ -486,10 +581,19 @@ function replacePlaceholders(text, candidateName, companyName, jobTitle) {
 }
 
 async function generateCoverLetter(jobDescription, resumeSummary, keywords, tone = 'Professional', meta = {}) {
-  const prompt = PROMPTS.coverLetter.replace('[TONE_SELECTION]', tone);
+  let prompt = PROMPTS.coverLetter.replace('[TONE_SELECTION]', tone);
   const keywordList = keywords.keywords.map(k => k.keyword).join(', ');
 
   const candidateName = meta.candidateName || extractCandidateName(meta.resumeText || '');
+
+  const museDirection = await claudeMuse(
+    tone,
+    meta.voiceText || '',
+    `Cover letter for ${meta.jobTitle || 'a position'} at ${meta.companyName || 'a company'}. Resume summary: ${resumeSummary?.substring(0, 200) || 'N/A'}`
+  );
+  if (museDirection) {
+    prompt += `\n\nCREATIVE DIRECTION FROM WRITING DIRECTOR (follow this closely — it defines the voice and character of this specific letter):\n${museDirection}`;
+  }
   const companyName = meta.companyName || 'the company';
   const jobTitle = meta.jobTitle || 'the position';
   const today = new Date().toLocaleDateString('en-US', {
@@ -1018,10 +1122,20 @@ app.post('/optimize', async (req, res) => {
       // Step 2: Rewrite resume (with optional retry instruction prepended)
       console.log(`[Server] Attempt ${attempt + 1}: Rewriting resume...`);
       const voiceText = getActiveVoiceText(masterResume);
-      const rewrittenResume = await rewriteResumeWithStrategy(
-        masterResume.text, keywords, strategy ? strategy.instruction : null, voiceText
-      );
-      console.log('[Server] Resume rewritten successfully');
+      let rewrittenResume;
+      try {
+        rewrittenResume = await rewriteResumeWithStrategy(
+          masterResume.text, keywords, strategy ? strategy.instruction : null, voiceText
+        );
+        console.log('[Server] Resume rewritten successfully');
+      } catch (parseErr) {
+        console.error(`[Server] Attempt ${attempt + 1} failed: ${parseErr.message}`);
+        if (attempt < MAX_RETRIES) {
+          console.log('[Server] Will retry with next strategy...');
+          continue;
+        }
+        throw parseErr;
+      }
 
       // Score it
       const scoring = calculateMatchScore(masterResume.text, keywords, rewrittenResume);
@@ -1291,7 +1405,18 @@ CRITICAL RULES:
       contextParts.push(`\n---\nA similar question was previously answered. Here is the previous answer for reference (improve upon it, don't copy verbatim):\n${similar.versions[similar.selectedVersion]?.answer || similar.answer}`);
     }
 
-    const answer = await callOpenAI(systemPrompt, contextParts.join('\n'), 'Answer Generation');
+    const museDirection = await claudeMuse(
+      'Conversational',
+      voiceText,
+      `Answering job application question: "${question.substring(0, 120)}" for ${pageContext?.companyName || 'unknown company'}, role: ${pageContext?.roleTitle || 'unknown'}`
+    );
+
+    let finalSystemPrompt = systemPrompt;
+    if (museDirection) {
+      finalSystemPrompt += `\n\nCREATIVE DIRECTION FROM WRITING DIRECTOR (follow this closely — it defines how this answer should sound):\n${museDirection}`;
+    }
+
+    const answer = await callOpenAI(finalSystemPrompt, contextParts.join('\n'), 'Answer Generation');
 
     // Auto-categorize
     let category = 'other';

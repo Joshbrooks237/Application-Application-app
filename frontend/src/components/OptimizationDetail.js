@@ -2,7 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { getOptimizationDetail, regenerateCoverLetter, getDownloadUrl, refineWithFeedback } from '../api';
 import KeywordPanel from './KeywordPanel';
 
-const TONES = ['Professional', 'Confident', 'Conversational', 'Funny'];
+const TONES = [
+  'Professional', 'Confident', 'Conversational', 'Casual', 'Funny',
+  'Fun', 'Storyteller', 'Bold', 'Warm', 'Direct', 'Enthusiastic',
+];
 
 function HighlightedText({ text, keywords }) {
   if (!text || !keywords?.length) return <span>{text}</span>;
@@ -312,9 +315,9 @@ export default function OptimizationDetail({ optimizationId, onBack }) {
           </div>
 
           {/* Tone Selector */}
-          <div className="flex items-center gap-4">
-            <span className="text-sm font-medium text-slate-400">Tone:</span>
-            <div className="flex gap-2">
+          <div className="flex items-start gap-4">
+            <span className="text-sm font-medium text-slate-400 pt-2">Tone:</span>
+            <div className="flex flex-wrap gap-2">
               {TONES.map(t => (
                 <button
                   key={t}

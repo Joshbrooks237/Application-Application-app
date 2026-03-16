@@ -322,7 +322,11 @@
       <span class="btn-icon">🚀</span>
       <span class="btn-text">Optimize My Application</span>
     `;
-    btn.addEventListener('click', handleOptimizeClick);
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      handleOptimizeClick();
+    });
 
     bar.appendChild(dashBtn);
     bar.appendChild(btn);
@@ -398,8 +402,6 @@
       showStatusBadge('❌ Failed');
     } finally {
       btn.classList.remove('loading');
-      // Clear selection so button reverts to default state
-      window.getSelection()?.removeAllRanges();
       updateButtonMode();
       setTimeout(hideStatusBadge, 5000);
     }
@@ -458,7 +460,11 @@
       lastUrl = location.href;
       console.log('[Indeeeed] URL changed to:', location.href);
       retryCount = 0;
-      // Remove old button so it re-injects cleanly
+      const btn = document.getElementById('indeeeed-optimize-btn');
+      if (btn && btn.classList.contains('loading')) {
+        console.log('[Indeeeed] URL changed during optimization — keeping button bar');
+        return;
+      }
       const oldBar = document.getElementById('indeeeed-btn-bar');
       if (oldBar) oldBar.remove();
       setTimeout(init, INIT_DELAY);
@@ -484,6 +490,11 @@
       lastUrl = location.href;
       console.log('[Indeeeed] History state changed to:', location.href);
       retryCount = 0;
+      const btn = document.getElementById('indeeeed-optimize-btn');
+      if (btn && btn.classList.contains('loading')) {
+        console.log('[Indeeeed] History state changed during optimization — keeping button bar');
+        return;
+      }
       const oldBar = document.getElementById('indeeeed-btn-bar');
       if (oldBar) oldBar.remove();
       setTimeout(init, INIT_DELAY);
