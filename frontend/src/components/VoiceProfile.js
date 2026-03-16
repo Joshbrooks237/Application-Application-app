@@ -1,19 +1,145 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   createVoiceProfile,
   updateVoiceProfile,
   deleteVoiceProfile,
-  activateVoiceProfile
+  activateVoiceProfile,
+  getVoiceProfiles
 } from '../api';
 
-const SLOT_PRESETS = ['Formal', 'Conversational', 'Sales Forward', 'Property Management Focus', 'Custom'];
+const SECTIONS = [
+  { key: 'communication', label: 'Communication Style', icon: '💬', placeholder: 'How do you naturally talk? Direct or diplomatic? Formal or casual? High energy or calm? How do you handle tough conversations?' },
+  { key: 'identity', label: 'Core Identity', icon: '🧭', placeholder: 'What drives you? Your professional philosophy in your own words. What do you believe about work, people, success?' },
+  { key: 'stories', label: 'Signature Stories', icon: '📖', placeholder: 'Real stories you\'d tell in an interview. The storage facility turnaround, the medical delivery hustle, the HVAC grind — write them like you\'d actually tell them.' },
+  { key: 'differentiators', label: 'What Makes Me Different', icon: '⚡', placeholder: 'What sets you apart from other candidates? The honest, authentic things — not corporate buzzwords.' },
+  { key: 'phrases', label: 'Phrases I Actually Use', icon: '🗣️', placeholder: 'Words and phrases you naturally say. "Let\'s build trust from the ground up." "Turning chaos into order is my jam." Add your own.' },
+  { key: 'gaps', label: 'Honest Gaps', icon: '🌉', placeholder: 'How do you address career transitions or missing experience? Write how you\'d actually explain it in an interview.' },
+  { key: 'targeting', label: 'Roles I\'m Targeting', icon: '🎯', placeholder: 'What kinds of jobs are you going after? Property management, customer service, sales, leasing, tech? Any specific companies?' },
+  { key: 'neverSay', label: 'Things to NEVER Say', icon: '🚫', placeholder: 'Anything you want the AI to avoid. Wrong company names, exaggerated claims, specific phrases you hate seeing.' },
+  { key: 'personalNotes', label: 'Personal Notes', icon: '📝', placeholder: 'Anything else the AI should know. Availability, relocation preferences, salary expectations, personal motivations, fun facts.' },
+];
 
-function SlotCard({ slot, isActive, profileId, onChanged }) {
-  const [editing, setEditing] = useState(false);
-  const [editText, setEditText] = useState('');
-  const [editName, setEditName] = useState('');
+const SLOT_PRESETS = ['Default', 'Formal', 'Conversational', 'Sales Forward', 'Property Management Focus'];
+
+function parseSections(text) {
+  if (!text) return {};
+  const sections = {};
+  let currentKey = null;
+
+  for (const section of SECTIONS) {
+    const headerPatterns = [
+      section.label.toUpperCase(),
+      section.label,
+      section.key.toUpperCase(),
+    ];
+    for (const pattern of headerPatterns) {
+      const idx = text.indexOf(pattern);
+      if (idx !== -1) {
+        if (!sections._order) sections._order = [];
+        sections._order.push({ key: section.key, idx });
+      }
+    }
+  }
+
+  if (sections._order && sections._order.length > 0) {
+    sections._order.sort((a, b) => a.idx - b.idx);
+    for (let i = 0; i < sections._order.length; i++) {
+      const { key, idx } = sections._order[i];
+      const headerEnd = text.indexOf('\n', idx);
+      const start = headerEnd !== -1 ? headerEnd + 1 : idx;
+      const end = i + 1 < sections._order.length ? sections._order[i + 1].idx : text.length;
+      sections[key] = text.substring(start, end).trim();
+    }
+    delete sections._order;
+    return sections;
+  }
+
+  sections.personalNotes = text.trim();
+  return sections;
+}
+
+function sectionsToText(sections) {
+  const parts = [];
+  for (const s of SECTIONS) {
+    const val = (sections[s.key] || '').trim();
+    if (val) {
+      parts.push(`${s.label.toUpperCase()}\n\n${val}`);
+    }
+  }
+  return parts.join('\n\n---\n\n');
+}
+
+function SectionEditor({ section, value, onChange }) {
+  const [expanded, setExpanded] = useState(false);
+  const hasContent = value && value.trim().length > 0;
+
+  return (
+    <div className={`rounded-lg border transition-all ${
+      hasContent
+        ? 'bg-surface-raised border-accent/20'
+        : 'bg-surface border-surface-overlay'
+    }`}>
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="w-full flex items-center gap-2 px-3 py-2 text-left"
+      >
+        <span className="text-sm">{section.icon}</span>
+        <span className={`text-[11px] font-bold flex-1 ${hasContent ? 'text-slate-200' : 'text-slate-500'}`}>
+          {section.label}
+        </span>
+        {hasContent && (
+          <span className="text-[9px] text-accent/60 font-medium shrink-0">
+            {value.trim().length} chars
+          </span>
+        )}
+        <span className="text-[10px] text-slate-600">{expanded ? '▼' : '▶'}</span>
+      </button>
+
+      {expanded && (
+        <div className="px-3 pb-3">
+          <textarea
+            value={value || ''}
+            onChange={e => onChange(section.key, e.target.value)}
+            className="w-full bg-surface border border-surface-overlay rounded-lg px-2.5 py-2 text-xs text-slate-200
+                       placeholder-slate-600 focus:outline-none focus:border-accent/40 resize-none leading-relaxed"
+            rows={4}
+            placeholder={section.placeholder}
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SlotEditor({ slot, isActive, profileId, onChanged }) {
+  const [expanded, setExpanded] = useState(false);
+  const [sections, setSections] = useState({});
   const [saving, setSaving] = useState(false);
+  const [dirty, setDirty] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const loadFullText = async () => {
+    if (Object.keys(sections).length > 0) return;
+    setLoading(true);
+    try {
+      const data = await getVoiceProfiles(profileId);
+      const fullSlot = data.voiceProfiles?.find(v => v.id === slot.id);
+      if (fullSlot?.text) {
+        setSections(parseSections(fullSlot.text));
+      }
+    } catch (err) {
+      console.error('Failed to load voice profile:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleExpand = async (e) => {
+    e.stopPropagation();
+    if (!expanded) await loadFullText();
+    setExpanded(!expanded);
+  };
 
   const handleActivate = async (e) => {
     e.stopPropagation();
@@ -26,24 +152,21 @@ function SlotCard({ slot, isActive, profileId, onChanged }) {
     }
   };
 
-  const handleEdit = (e) => {
-    e.stopPropagation();
-    setEditName(slot.name);
-    setEditText('');
-    setEditing(true);
+  const handleSectionChange = (key, value) => {
+    setSections(prev => ({ ...prev, [key]: value }));
+    setDirty(true);
   };
 
-  const handleSave = async () => {
+  const handleSave = async (e) => {
+    e.stopPropagation();
     setSaving(true);
     try {
-      const updates = {};
-      if (editName && editName !== slot.name) updates.name = editName;
-      if (editText.trim()) updates.text = editText;
-      await updateVoiceProfile(profileId, slot.id, updates);
-      setEditing(false);
+      const text = sectionsToText(sections);
+      await updateVoiceProfile(profileId, slot.id, { text });
+      setDirty(false);
       onChanged();
     } catch (err) {
-      console.error('Failed to update voice profile:', err);
+      console.error('Failed to save voice profile:', err);
     } finally {
       setSaving(false);
     }
@@ -60,16 +183,20 @@ function SlotCard({ slot, isActive, profileId, onChanged }) {
     }
   };
 
+  const filledCount = SECTIONS.filter(s => sections[s.key]?.trim()).length;
+
   return (
     <div
-      onClick={handleActivate}
-      className={`relative rounded-lg p-3 transition-all cursor-pointer ${
+      className={`rounded-lg transition-all ${
         isActive
           ? 'bg-accent/10 border-2 border-accent shadow-sm shadow-accent/10'
           : 'bg-surface border border-surface-overlay hover:border-slate-500'
       }`}
     >
-      <div className="flex items-center justify-between">
+      <div
+        onClick={handleActivate}
+        className="flex items-center justify-between p-3 cursor-pointer"
+      >
         <div className="flex items-center gap-2 min-w-0">
           <span className="text-sm">{isActive ? '🎤' : '🎙️'}</span>
           <span className={`text-xs font-bold truncate ${isActive ? 'text-accent' : 'text-slate-300'}`}>
@@ -81,13 +208,16 @@ function SlotCard({ slot, isActive, profileId, onChanged }) {
             </span>
           )}
         </div>
-        <div className="flex items-center gap-1 shrink-0" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center gap-1.5 shrink-0" onClick={e => e.stopPropagation()}>
+          <span className="text-[9px] text-slate-500">
+            {slot.textLength > 0 ? `${(slot.textLength || 0).toLocaleString()} chars` : 'empty'}
+          </span>
           <button
-            onClick={handleEdit}
-            className="p-1 rounded text-slate-500 hover:text-slate-300 transition-colors"
-            title="Edit"
+            onClick={handleExpand}
+            className="p-1 rounded text-slate-500 hover:text-accent transition-colors"
+            title={expanded ? 'Collapse' : 'Edit sections'}
           >
-            <span className="text-[10px]">✏️</span>
+            <span className="text-[10px]">{expanded ? '▼' : '✏️'}</span>
           </button>
           {confirmDelete ? (
             <div className="flex items-center gap-1">
@@ -116,48 +246,46 @@ function SlotCard({ slot, isActive, profileId, onChanged }) {
         </div>
       </div>
 
-      <p className="text-[10px] text-slate-500 mt-1">
-        {(slot.textLength || 0).toLocaleString()} chars
-        {slot.updatedAt && (
-          <> · Updated {new Date(slot.updatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</>
-        )}
-      </p>
+      {slot.updatedAt && !expanded && (
+        <p className="text-[10px] text-slate-600 px-3 pb-2">
+          Updated {new Date(slot.updatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+          {filledCount > 0 && ` · ${filledCount}/${SECTIONS.length} sections`}
+        </p>
+      )}
 
-      {editing && (
-        <div className="mt-3 space-y-2" onClick={e => e.stopPropagation()}>
-          <input
-            type="text"
-            value={editName}
-            onChange={e => setEditName(e.target.value)}
-            className="w-full bg-surface-raised border border-surface-overlay rounded-lg px-2 py-1.5 text-xs text-slate-200
-                       placeholder-slate-500 focus:outline-none focus:border-accent/40"
-            placeholder="Slot name"
-          />
-          <textarea
-            value={editText}
-            onChange={e => setEditText(e.target.value)}
-            className="w-full bg-surface-raised border border-surface-overlay rounded-lg px-2 py-1.5 text-xs text-slate-200
-                       placeholder-slate-500 focus:outline-none focus:border-accent/40 resize-none"
-            rows={4}
-            placeholder="Paste updated voice profile text (leave empty to keep current)"
-          />
-          <div className="flex gap-1.5">
-            <button
-              onClick={handleSave}
-              disabled={saving}
-              className="flex-1 py-1.5 text-[10px] font-bold bg-accent text-white rounded-lg hover:bg-accent/80
-                         transition-colors disabled:opacity-50"
-            >
-              {saving ? 'Saving...' : 'Save'}
-            </button>
-            <button
-              onClick={() => setEditing(false)}
-              className="px-3 py-1.5 text-[10px] text-slate-400 bg-surface-raised border border-surface-overlay rounded-lg
-                         hover:text-slate-200"
-            >
-              Cancel
-            </button>
-          </div>
+      {expanded && (
+        <div className="px-3 pb-3 space-y-1.5" onClick={e => e.stopPropagation()}>
+          {loading ? (
+            <div className="flex items-center justify-center py-4">
+              <div className="w-4 h-4 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+            </div>
+          ) : (
+            <>
+              <p className="text-[10px] text-slate-500 mb-2">
+                {filledCount}/{SECTIONS.length} sections filled — click any section to add notes
+              </p>
+
+              {SECTIONS.map(s => (
+                <SectionEditor
+                  key={s.key}
+                  section={s}
+                  value={sections[s.key] || ''}
+                  onChange={handleSectionChange}
+                />
+              ))}
+
+              {dirty && (
+                <button
+                  onClick={handleSave}
+                  disabled={saving}
+                  className="w-full py-2 text-xs font-bold bg-accent text-white rounded-lg hover:bg-accent/80
+                             transition-colors disabled:opacity-50 mt-2"
+                >
+                  {saving ? 'Saving...' : 'Save All Changes'}
+                </button>
+              )}
+            </>
+          )}
         </div>
       )}
     </div>
@@ -167,8 +295,6 @@ function SlotCard({ slot, isActive, profileId, onChanged }) {
 export default function VoiceProfile({ profile, onChanged }) {
   const [showAdd, setShowAdd] = useState(false);
   const [newName, setNewName] = useState('');
-  const [newText, setNewText] = useState('');
-  const [newFile, setNewFile] = useState(null);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState('');
   const fileRef = useRef();
@@ -179,20 +305,35 @@ export default function VoiceProfile({ profile, onChanged }) {
   const activeSlotId = profile.activeVoiceProfileId;
 
   const handleCreate = async () => {
-    if (!newText.trim() && !newFile) return setError('Enter voice profile text or upload a file');
     if (!newName.trim()) return setError('Enter a slot name');
     setError('');
     setCreating(true);
     try {
       await createVoiceProfile(profile.id, {
         name: newName.trim(),
-        text: newText.trim() || undefined,
-        file: newFile || undefined
+        text: 'New voice profile — click edit to fill in sections.'
       });
       setShowAdd(false);
       setNewName('');
-      setNewText('');
-      setNewFile(null);
+      onChanged();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const handleFileCreate = async (file) => {
+    if (!file) return;
+    setError('');
+    setCreating(true);
+    try {
+      await createVoiceProfile(profile.id, {
+        name: newName.trim() || 'Imported',
+        file
+      });
+      setShowAdd(false);
+      setNewName('');
       onChanged();
     } catch (err) {
       setError(err.message);
@@ -218,18 +359,19 @@ export default function VoiceProfile({ profile, onChanged }) {
       {slots.length === 0 && !showAdd && (
         <div className="bg-surface border border-surface-overlay rounded-lg p-3 text-center">
           <p className="text-xs text-slate-500 mb-2">No voice profile yet</p>
+          <p className="text-[10px] text-slate-600 mb-3">Add notes about your communication style, real stories, and what makes you memorable</p>
           <button
             onClick={() => { setShowAdd(true); setNewName('Default'); }}
             className="px-3 py-1.5 text-[10px] font-semibold bg-accent/20 text-accent rounded-lg hover:bg-accent/30 transition-colors"
           >
-            Add Voice Profile
+            Create Voice Profile
           </button>
         </div>
       )}
 
       <div className="space-y-1.5">
         {slots.map(slot => (
-          <SlotCard
+          <SlotEditor
             key={slot.id}
             slot={slot}
             isActive={slot.id === activeSlotId}
@@ -252,34 +394,6 @@ export default function VoiceProfile({ profile, onChanged }) {
             autoFocus
           />
 
-          <div
-            onClick={() => fileRef.current?.click()}
-            className="border border-dashed border-surface-overlay rounded-lg p-2 text-center cursor-pointer
-                       hover:border-slate-500 transition-colors bg-surface-raised"
-          >
-            <input
-              ref={fileRef}
-              type="file"
-              accept=".txt,.docx"
-              className="hidden"
-              onChange={e => setNewFile(e.target.files[0])}
-            />
-            <p className="text-[10px] text-slate-400">
-              {newFile ? newFile.name : 'Upload .txt or .docx (optional)'}
-            </p>
-          </div>
-
-          <textarea
-            value={newText}
-            onChange={e => setNewText(e.target.value)}
-            className="w-full bg-surface-raised border border-surface-overlay rounded-lg px-2 py-1.5 text-xs text-slate-200
-                       placeholder-slate-500 focus:outline-none focus:border-accent/40 resize-none"
-            rows={5}
-            placeholder="Or paste voice profile text here — communication style, real stories, philosophy, what makes you memorable..."
-          />
-
-          {error && <p className="text-[10px] text-danger">{error}</p>}
-
           <div className="flex gap-1.5">
             <button
               onClick={handleCreate}
@@ -287,8 +401,23 @@ export default function VoiceProfile({ profile, onChanged }) {
               className="flex-1 py-1.5 text-[10px] font-bold bg-accent text-white rounded-lg hover:bg-accent/80
                          transition-colors disabled:opacity-50"
             >
-              {creating ? 'Creating...' : 'Create Voice Profile'}
+              {creating ? 'Creating...' : 'Create Empty'}
             </button>
+            <button
+              onClick={() => fileRef.current?.click()}
+              disabled={creating}
+              className="px-3 py-1.5 text-[10px] font-bold text-accent bg-accent/10 border border-accent/30 rounded-lg
+                         hover:bg-accent/20 transition-colors disabled:opacity-50"
+            >
+              Import File
+            </button>
+            <input
+              ref={fileRef}
+              type="file"
+              accept=".txt,.docx"
+              className="hidden"
+              onChange={e => handleFileCreate(e.target.files[0])}
+            />
             <button
               onClick={() => { setShowAdd(false); setError(''); }}
               className="px-3 py-1.5 text-[10px] text-slate-400 bg-surface-raised border border-surface-overlay rounded-lg
@@ -297,6 +426,8 @@ export default function VoiceProfile({ profile, onChanged }) {
               Cancel
             </button>
           </div>
+
+          {error && <p className="text-[10px] text-danger mt-1">{error}</p>}
         </div>
       )}
     </div>
