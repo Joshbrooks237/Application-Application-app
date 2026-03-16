@@ -176,28 +176,51 @@ function SlotEditor({ slot, isActive, profileId, onChanged }) {
   const [sections, setSections] = useState({});
   const [saving, setSaving] = useState(false);
   const [dirty, setDirty] = useState(false);
+  const [savedFlash, setSavedFlash] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+  const debounceRef = useRef(null);
+  const sectionsRef = useRef(sections);
+  sectionsRef.current = sections;
 
-  const loadFullText = async () => {
-    if (Object.keys(sections).length > 0) return;
-    setLoading(true);
-    try {
-      const data = await getVoiceProfiles(profileId);
-      const fullSlot = data.voiceProfiles?.find(v => v.id === slot.id);
-      if (fullSlot?.text) {
-        setSections(parseSections(fullSlot.text));
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const data = await getVoiceProfiles(profileId);
+        if (cancelled) return;
+        const fullSlot = data.voiceProfiles?.find(v => v.id === slot.id);
+        if (fullSlot?.text) {
+          setSections(parseSections(fullSlot.text));
+        }
+        setLoaded(true);
+      } catch (err) {
+        console.error('Failed to load voice profile:', err);
+        setLoaded(true);
       }
+    })();
+    return () => { cancelled = true; };
+  }, [profileId, slot.id]);
+
+  const doSave = async (sectionsToSave) => {
+    setSaving(true);
+    try {
+      const text = sectionsToText(sectionsToSave);
+      await updateVoiceProfile(profileId, slot.id, { text });
+      setDirty(false);
+      setSavedFlash(true);
+      setTimeout(() => setSavedFlash(false), 2000);
+      onChanged();
     } catch (err) {
-      console.error('Failed to load voice profile:', err);
+      console.error('Failed to save voice profile:', err);
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   };
 
-  const handleExpand = async (e) => {
+  const handleExpand = (e) => {
     e.stopPropagation();
-    if (!expanded) await loadFullText();
     setExpanded(!expanded);
   };
 
@@ -213,27 +236,30 @@ function SlotEditor({ slot, isActive, profileId, onChanged }) {
   };
 
   const handleSectionChange = (key, value) => {
-    setSections(prev => ({ ...prev, [key]: value }));
+    const updated = { ...sectionsRef.current, [key]: value };
+    setSections(updated);
+    sectionsRef.current = updated;
     setDirty(true);
+
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      doSave(sectionsRef.current);
+    }, 1500);
   };
 
-  const handleSave = async (e) => {
+  useEffect(() => {
+    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
+  }, []);
+
+  const handleManualSave = async (e) => {
     e.stopPropagation();
-    setSaving(true);
-    try {
-      const text = sectionsToText(sections);
-      await updateVoiceProfile(profileId, slot.id, { text });
-      setDirty(false);
-      onChanged();
-    } catch (err) {
-      console.error('Failed to save voice profile:', err);
-    } finally {
-      setSaving(false);
-    }
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    await doSave(sectionsRef.current);
   };
 
   const handleDelete = async (e) => {
     e.stopPropagation();
+    if (debounceRef.current) clearTimeout(debounceRef.current);
     try {
       await deleteVoiceProfile(profileId, slot.id);
       setConfirmDelete(false);
@@ -315,15 +341,30 @@ function SlotEditor({ slot, isActive, profileId, onChanged }) {
 
       {expanded && (
         <div className="px-3 pb-3 space-y-1.5" onClick={e => e.stopPropagation()}>
-          {loading ? (
+          {!loaded ? (
             <div className="flex items-center justify-center py-4">
               <div className="w-4 h-4 border-2 border-accent border-t-transparent rounded-full animate-spin" />
             </div>
           ) : (
             <>
-              <p className="text-[10px] text-slate-500 mb-2">
-                {filledCount}/{SECTIONS.length} sections filled — click any section to add notes
-              </p>
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-[10px] text-slate-500">
+                  {filledCount}/{SECTIONS.length} sections filled — click any section to add notes
+                </p>
+                <div className="flex items-center gap-2">
+                  {saving && (
+                    <span className="text-[9px] text-slate-500 flex items-center gap-1">
+                      <span className="w-2 h-2 border border-accent border-t-transparent rounded-full animate-spin inline-block" />
+                      Saving...
+                    </span>
+                  )}
+                  {savedFlash && !saving && (
+                    <span className="text-[9px] text-success font-medium animate-fadeInUp">
+                      Saved ✓
+                    </span>
+                  )}
+                </div>
+              </div>
 
               {SECTIONS.map(s => (
                 <SectionEditor
@@ -336,7 +377,7 @@ function SlotEditor({ slot, isActive, profileId, onChanged }) {
 
               {dirty && (
                 <button
-                  onClick={handleSave}
+                  onClick={handleManualSave}
                   disabled={saving}
                   className="w-full py-2 text-xs font-bold bg-accent text-white rounded-lg hover:bg-accent/80
                              transition-colors disabled:opacity-50 mt-2"
