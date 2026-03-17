@@ -390,24 +390,47 @@ Return ONLY valid JSON with keys: summary, skills, experience, additionalExperie
 Expected format:
 {"summary": "...", "skills": ["skill1", "skill2", ...], "experience": [{"role": "...", "company": "...", "bullets": ["...", "...", "..."]}], "additionalExperience": [{"role": "...", "company": "...", "bullets": ["...", "..."]}]}`,
 
-  coverLetter: `You are an expert cover letter writer. Write a tailored cover letter using ONLY the candidate's real background from their resume and the job's exact keywords and phrases. Mirror the tone and language of the job posting. The letter should feel human, specific, and confident — not generic. Use the STAR method for one key achievement that ACTUALLY EXISTS in the resume. Length: 3 paragraphs. Tone: [TONE_SELECTION].
+  coverLetter: `You are a master cover letter writer. Tone: [TONE_SELECTION].
 
-PERSONALITY RULE — applies to ALL tones: This candidate has a natural sense of humor and it should come through in every cover letter. Include 1-2 witty moments — a punchy opening line, a self-aware aside, or a clever observation about the industry that makes the hiring manager smile. Be charming, not clownish. The goal is a cover letter that feels human and memorable — someone you'd actually want to grab coffee with. Still grounded in real experience, still clearly professional — just with enough personality that it doesn't read like everyone else's.
+OPENING HOOK: Start with an engaging observation, comparison, or insight related to the role. NEVER open with "I am writing to apply" or any generic opener. Choose from these hook styles:
+- Insight: A sharp observation about the industry or role that shows you get it.
+- Comparison: Connect an unexpected real experience to the job in a surprising way.
+- Observation: A specific, human detail about the company or role that shows genuine awareness.
+Connect the candidate's real experience to the job responsibilities from the first sentence.
 
-TONE GUIDE — match your writing style to the selected tone:
-- Professional: Polished, formal, corporate-appropriate. Clean structure, measured language, zero slang.
-- Confident: Bold, assertive, leads with impact. "Here's what I bring" energy. Numbers up front.
-- Conversational: Relaxed, friendly, sounds like a real person wrote it over coffee. Natural rhythm, contractions welcome.
-- Casual: Laid-back and approachable, like texting a recruiter you already vibe with. Loose structure, real talk, zero corporate speak. Still shows competence — just doesn't try hard to prove it.
-- Funny: Witty, clever, self-aware humor. Open with a memorable hook that makes the reader smile. Dry wit and personality — NOT slapstick or jokes. Still professional enough to get hired. Think "the cover letter they actually read twice."
-- Fun: Light, upbeat, playful energy. Shows genuine excitement and personality without the sharp wit of Funny. Think "this person would be awesome to work with." Sprinkle in charm and positivity while keeping it real.
-- Storyteller: Narrative-driven. Open with a compelling moment or scene from the candidate's real experience. Pull the reader in like the first page of a book. Arc from challenge to impact.
-- Bold: Unapologetic, high-conviction, stands out from the pile. "You need someone who can do X — I already have" energy. Borders on audacious without being arrogant.
-- Warm: Empathetic, people-first, relationship-focused. Emphasizes teamwork, mentorship, community impact. Heart on sleeve but still substantive.
-- Direct: No fluff, no filler, respects the reader's time. Short punchy sentences. Gets to the point in the first line. Every word earns its place.
-- Enthusiastic: High energy, genuinely excited about the opportunity. Infectious passion that feels authentic, not performative. Shows real research into the company.
+TONE & VOICE: Human, confident, professional, with light personality. Occasionally use short reflective sentences inspired by haiku rhythm — brief, contemplative, grounding. Never format as a poem. Be charming, not clownish. The goal is a cover letter that feels like a real person wrote it — someone you'd want to grab coffee with.
 
-CLOSING SENTENCE RULE: The final sentence of the cover letter must be 18-25 words, confident and natural. Connect the candidate's real strengths to the role or company mission. Use concrete words like reliability, safety, service, results, impact, trust. NEVER use clichés like "I am excited to apply", "I look forward to the opportunity", "I would love to discuss", or "Thank you for your consideration." Write a closer that sounds like a real person making a real promise — not a form letter.
+TONE GUIDE — match style to the selected tone:
+- Professional: Polished, formal, corporate-appropriate. Clean structure, measured language.
+- Confident: Bold, assertive, leads with impact. Numbers up front.
+- Conversational: Relaxed, friendly, natural rhythm. Contractions welcome.
+- Casual: Laid-back, approachable, zero corporate speak. Still competent.
+- Funny: Witty, clever, self-aware humor. Dry wit — NOT slapstick. The cover letter they read twice.
+- Fun: Light, upbeat, playful energy. Charm and positivity while keeping it real.
+- Storyteller: Narrative-driven. Open with a scene. Arc from challenge to impact.
+- Bold: Unapologetic, high-conviction. "You need X — I already have it" energy.
+- Warm: Empathetic, people-first, relationship-focused. Heart on sleeve but substantive.
+- Direct: No fluff. Short punchy sentences. Every word earns its place.
+- Enthusiastic: High energy, genuine excitement. Shows real company research.
+
+CONTENT REQUIREMENTS:
+- Include at least one measurable achievement or metric from the resume.
+- Include at least one real experience from the resume with specific details.
+- Naturally incorporate ATS keywords from the job description.
+- Emphasize reliability, safety, responsibility, service, or results as relevant to the role.
+
+HUMAN-TOUCH RULE: Inject one micro-personal detail per cover letter — a specific observation drawn from the job description, company name, industry, or location — in 1-2 sentences max. Place it in the hook or middle paragraph. This is what makes it feel like a real person wrote it for THIS specific job, not a template. Examples of the kind of detail to aim for:
+- Referencing the company's specific community or service area
+- Connecting a real past experience to a specific responsibility in the job posting
+- A brief reflective thought that shows genuine understanding of what the work means to real people
+This detail must feel natural, not forced. Never fabricate company facts — use only what's in the job description or company name.
+
+PARAGRAPH STRUCTURE: 3-4 paragraphs, under one page.
+- First paragraph: Hook + connection to role.
+- Middle paragraphs: Achievements, experiences, and skills relevant to the job.
+- Last paragraph: Reflective sentence + confident closing.
+
+CLOSING SENTENCE: The final sentence must be 18-25 words, confident and natural. Connect the candidate's real strengths to the company's mission or role. Prefer concrete words like reliability, safety, service, results. NEVER use clichés like "I am excited to apply", "I look forward to the opportunity", "I would love to discuss", or "Thank you for your consideration."
 
 ABSOLUTE TRUTH RULES — EVERY WORD MUST BE DEFENSIBLE IN AN INTERVIEW:
 - NEVER invent a scenario, story, or hypothetical example. Do NOT write "for instance" or "for example" followed by a made-up situation. If you need an example, use ONLY real ones from the resume.
@@ -582,22 +605,59 @@ function replacePlaceholders(text, candidateName, companyName, jobTitle) {
     .trim();
 }
 
+async function generateInsightSnippet(jobDescription, companyName, jobTitle) {
+  try {
+    const raw = await callOpenAI(
+      `You are a company research specialist. From the job description and company name provided, extract one specific, human insight about this company or role — something that shows genuine understanding of what they do, who they serve, or why this work matters to real people.
+
+Rules:
+- Return ONLY 1-2 sentences. Nothing else.
+- Draw from concrete details in the job description: location, community served, industry, mission hints, specific responsibilities.
+- If the company name is recognizable, reference what they're known for.
+- If location is mentioned, connect to the local community.
+- Make it feel like the candidate actually researched this company — not a generic line that could apply anywhere.
+- NEVER fabricate facts about the company. Only use what's in the job description or clearly implied by the company name.
+- Do NOT write in first person. Write it as a factual observation.
+
+Examples of good output:
+- "RATP Dev USA operates transit systems that communities in Ventura County depend on daily — reliability isn't abstract here, it's someone making it to work on time."
+- "Green Thumb Industries has built its reputation on quality-controlled cultivation at scale — precision and consistency define every role in their operation."
+- "This warehouse serves as the backbone of a regional supply chain, where accurate inventory processing directly impacts delivery timelines for thousands of customers."`,
+      `Company: ${companyName}\nJob Title: ${jobTitle}\n\nJob Description:\n${jobDescription}`,
+      'Insight Snippet'
+    );
+    const snippet = raw.trim().replace(/^["']|["']$/g, '');
+    console.log(`[Server] Insight snippet generated: "${snippet.substring(0, 80)}..."`);
+    return snippet;
+  } catch (err) {
+    console.warn('[Server] Insight snippet failed, skipping:', err.message);
+    return '';
+  }
+}
+
 async function generateCoverLetter(jobDescription, resumeSummary, keywords, tone = 'Professional', meta = {}) {
   let prompt = PROMPTS.coverLetter.replace('[TONE_SELECTION]', tone);
   const keywordList = keywords.keywords.map(k => k.keyword).join(', ');
 
   const candidateName = meta.candidateName || extractCandidateName(meta.resumeText || '');
+  const companyName = meta.companyName || 'the company';
+  const jobTitle = meta.jobTitle || 'the position';
 
-  const museDirection = await claudeMuse(
-    tone,
-    meta.voiceText || '',
-    `Cover letter for ${meta.jobTitle || 'a position'} at ${meta.companyName || 'a company'}. Resume summary: ${resumeSummary?.substring(0, 200) || 'N/A'}`
-  );
+  const [museDirection, insightSnippet] = await Promise.all([
+    claudeMuse(
+      tone,
+      meta.voiceText || '',
+      `Cover letter for ${jobTitle} at ${companyName}. Resume summary: ${resumeSummary?.substring(0, 200) || 'N/A'}`
+    ),
+    generateInsightSnippet(jobDescription, companyName, jobTitle)
+  ]);
+
   if (museDirection) {
     prompt += `\n\nCREATIVE DIRECTION FROM WRITING DIRECTOR (follow this closely — it defines the voice and character of this specific letter):\n${museDirection}`;
   }
-  const companyName = meta.companyName || 'the company';
-  const jobTitle = meta.jobTitle || 'the position';
+  if (insightSnippet) {
+    prompt += `\n\nCOMPANY/JOB INSIGHT (weave this naturally into the hook or middle paragraph — do not quote verbatim, adapt it to fit the letter's voice):\n${insightSnippet}`;
+  }
   const today = new Date().toLocaleDateString('en-US', {
     year: 'numeric', month: 'long', day: 'numeric'
   });
