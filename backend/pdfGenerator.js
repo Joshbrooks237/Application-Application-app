@@ -164,11 +164,12 @@ async function generateResumePDF(rewrittenResume, keywords, outputPath, masterRe
     for (const role of experience) {
       const roleTitle = role.role || role.title || 'Role';
       const company = role.company || '';
+      const dates = role.dates || '';
 
       doc.font(FONT_BOLD).fontSize(10).fillColor(COLOR_TEXT)
          .text(roleTitle, MARGIN, undefined, { continued: true });
       doc.font(FONT_REGULAR).fontSize(10).fillColor(COLOR_SUBTEXT)
-         .text(`  |  ${company}`, { continued: false });
+         .text(`  |  ${company}${dates ? '  |  ' + dates : ''}`, { continued: false });
       doc.moveDown(0.15);
 
       const bullets = role.bullets || [];
@@ -193,11 +194,12 @@ async function generateResumePDF(rewrittenResume, keywords, outputPath, masterRe
     for (const role of additionalExp) {
       const roleTitle = role.role || role.title || 'Role';
       const company = role.company || '';
+      const dates = role.dates || '';
 
       doc.font(FONT_BOLD).fontSize(10).fillColor(COLOR_TEXT)
          .text(roleTitle, MARGIN, undefined, { continued: true });
       doc.font(FONT_REGULAR).fontSize(10).fillColor(COLOR_SUBTEXT)
-         .text(`  |  ${company}`, { continued: false });
+         .text(`  |  ${company}${dates ? '  |  ' + dates : ''}`, { continued: false });
       doc.moveDown(0.15);
 
       const bullets = role.bullets || [];
