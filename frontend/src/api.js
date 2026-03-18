@@ -187,6 +187,16 @@ export async function activateVoiceProfile(profileId, slotId) {
   return res.json();
 }
 
+export async function toggleVoiceAutoSelect(profileId, enabled) {
+  const res = await fetch(`${API_BASE}/profiles/${profileId}/voice-auto-select`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ enabled })
+  });
+  if (!res.ok) { const err = await res.json(); throw new Error(err.error || 'Failed to toggle auto-select'); }
+  return res.json();
+}
+
 export async function refineWithFeedback(originalOutput, feedback, type, context = {}) {
   const res = await fetch(`${API_BASE}/refine-with-feedback`, {
     method: 'POST',

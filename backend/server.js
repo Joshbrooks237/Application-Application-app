@@ -195,6 +195,74 @@ function getActiveVoiceText(profile) {
   return slot?.text || '';
 }
 
+async function autoSelectVoiceText(profile, jobContext) {
+  if (!profile?.voiceProfiles?.length) return '';
+  const filledSlots = profile.voiceProfiles.filter(vp => vp.text && vp.text.trim().length > 20);
+  if (filledSlots.length === 0) return '';
+  if (filledSlots.length === 1) return filledSlots[0].text;
+
+  if (profile.voiceAutoSelect === false) {
+    console.log('[Server] Voice auto-select OFF — using manually selected slot');
+    return getActiveVoiceText(profile);
+  }
+
+  const slotSummaries = filledSlots.map(vp => {
+    const targeting = (vp.text || '').match(/ROLES I'M TARGETING[\s\n]+([^\n-][^\n]+)/)?.[1]?.trim() || '';
+    const identity = (vp.text || '').match(/CORE IDENTITY[\s\n]+([^\n-][^\n]+)/)?.[1]?.trim() || '';
+    return `Slot "${vp.name}" (id: ${vp.id}): ${targeting || identity || '(general purpose)'}`.substring(0, 250);
+  }).join('\n');
+
+  try {
+    const pick = await callOpenAI(
+      `You are a voice profile selector that can also BLEND voices. Given a job context and available voice profile slots, decide the best voice strategy.
+
+You have two options:
+OPTION A — Single voice: If one slot clearly matches, return just its id.
+OPTION B — Blend: If the job benefits from combining two voices (e.g., a tech-forward sales role could blend "Tech" + "Default"), return both ids with a blend instruction.
+
+Format for single: SINGLE:<slot_id>
+Format for blend: BLEND:<primary_id>|<secondary_id>|<one sentence describing how to blend them>
+
+Rules:
+- Property management, leasing, storage, facilities → Conversational or Default
+- Tech, developer, software, AI, engineering → Tech
+- Sales, customer service, CSR, medical → Default
+- Creative, startup, relaxed → casual/dude slot
+- Hybrid roles (e.g. "technical sales", "operations + tech") → BLEND the two most relevant voices
+- When blending, the primary voice sets the base tone, secondary adds flavor
+- If unsure, pick the default or first slot as SINGLE`,
+      `Job context: ${jobContext.substring(0, 500)}\n\nAvailable voice slots:\n${slotSummaries}`,
+      'Voice Auto-Select'
+    );
+
+    const result = pick.trim();
+
+    if (result.startsWith('BLEND:')) {
+      const parts = result.substring(6).split('|');
+      if (parts.length >= 2) {
+        const primary = filledSlots.find(vp => vp.id === parts[0].trim());
+        const secondary = filledSlots.find(vp => vp.id === parts[1].trim());
+        const blendNote = parts[2]?.trim() || 'Blend both voices naturally';
+        if (primary && secondary) {
+          console.log(`[Server] Voice BLEND: "${primary.name}" + "${secondary.name}" — ${blendNote}`);
+          return `=== PRIMARY VOICE: "${primary.name}" ===\n${primary.text}\n\n=== SECONDARY VOICE: "${secondary.name}" (blend in selectively) ===\n${secondary.text}\n\n=== BLEND DIRECTION: ${blendNote} ===`;
+        }
+      }
+    }
+
+    const singleId = result.startsWith('SINGLE:') ? result.substring(7).trim() : result.trim();
+    const matched = filledSlots.find(vp => vp.id === singleId);
+    if (matched) {
+      console.log(`[Server] Auto-selected voice profile: "${matched.name}"`);
+      return matched.text || '';
+    }
+  } catch (err) {
+    console.warn('[Server] Voice auto-select failed, using active slot:', err.message);
+  }
+
+  return getActiveVoiceText(profile);
+}
+
 // Backward compat: migrate old single-resume to first profile
 function migrateLegacyResume() {
   if (profiles.length > 0) return;
@@ -797,7 +865,8 @@ app.get('/profiles', (req, res) => {
         textLength: v.text?.length || 0,
         createdAt: v.createdAt, updatedAt: v.updatedAt
       })),
-      activeVoiceProfileId: p.activeVoiceProfileId || null
+      activeVoiceProfileId: p.activeVoiceProfileId || null,
+      voiceAutoSelect: p.voiceAutoSelect !== false
     })),
     activeProfileId
   });
@@ -930,7 +999,8 @@ app.get('/profiles/:id/voice-profiles', (req, res) => {
 
   res.json({
     voiceProfiles: profile.voiceProfiles || [],
-    activeVoiceProfileId: profile.activeVoiceProfileId || null
+    activeVoiceProfileId: profile.activeVoiceProfileId || null,
+    voiceAutoSelect: profile.voiceAutoSelect !== false
   });
 });
 
@@ -1023,10 +1093,23 @@ app.post('/profiles/:id/voice-profiles/:slotId/activate', (req, res) => {
   if (!slot) return res.status(404).json({ error: 'Voice profile slot not found' });
 
   profile.activeVoiceProfileId = slot.id;
+  profile.voiceAutoSelect = false;
   saveProfiles();
 
-  console.log(`[Server] Active voice profile: "${slot.name}" for ${profile.name}`);
-  res.json({ success: true, activeVoiceProfileId: slot.id });
+  console.log(`[Server] Active voice profile: "${slot.name}" for ${profile.name} (manual mode)`);
+  res.json({ success: true, activeVoiceProfileId: slot.id, voiceAutoSelect: false });
+});
+
+app.post('/profiles/:id/voice-auto-select', (req, res) => {
+  const profile = profiles.find(p => p.id === req.params.id);
+  if (!profile) return res.status(404).json({ error: 'Profile not found' });
+
+  const enabled = req.body.enabled !== false;
+  profile.voiceAutoSelect = enabled;
+  saveProfiles();
+
+  console.log(`[Server] Voice auto-select: ${enabled ? 'ON' : 'OFF'} for ${profile.name}`);
+  res.json({ success: true, voiceAutoSelect: enabled });
 });
 
 // ── Legacy + Core Routes ──
@@ -1191,6 +1274,10 @@ app.post('/optimize', async (req, res) => {
   ];
 
   try {
+    // Step 0: Auto-select best voice profile for this job
+    const jobContext = `${jobTitle || ''} at ${companyName || ''}: ${fullDescription.substring(0, 300)}`;
+    const voiceText = await autoSelectVoiceText(masterResume, jobContext);
+
     // Step 1: Extract ATS keywords (done once, reused across retries)
     console.log('[Server] Step 1: Extracting keywords...');
     const keywords = await extractKeywords(fullDescription);
@@ -1210,7 +1297,6 @@ app.post('/optimize', async (req, res) => {
 
       // Step 2: Rewrite resume (with optional retry instruction prepended)
       console.log(`[Server] Attempt ${attempt + 1}: Rewriting resume...`);
-      const voiceText = getActiveVoiceText(masterResume);
       let rewrittenResume;
       try {
         rewrittenResume = await rewriteResumeWithStrategy(
@@ -1252,7 +1338,7 @@ app.post('/optimize', async (req, res) => {
             companyName: companyName || 'the company',
             jobTitle: jobTitle || 'the position',
             resumeText: masterResume.text,
-            voiceText: getActiveVoiceText(masterResume)
+            voiceText
           }
         );
 
@@ -1388,6 +1474,9 @@ app.post('/re-optimize/:id', async (req, res) => {
   ];
 
   try {
+    const shakeJobContext = `${entry.jobTitle || ''} at ${entry.companyName || ''}: ${(entry.fullDescription || '').substring(0, 300)}`;
+    const voiceText = await autoSelectVoiceText(masterResume, shakeJobContext);
+
     const keywords = { keywords: entry.keywords };
     let bestResult = null;
     let bestScore = entry.matchScore;
@@ -1399,7 +1488,6 @@ app.post('/re-optimize/:id', async (req, res) => {
 
       let rewrittenResume;
       try {
-        const voiceText = getActiveVoiceText(masterResume);
         rewrittenResume = await rewriteResumeWithStrategy(
           masterResume.text, keywords, strategy.instruction, voiceText
         );
@@ -1425,7 +1513,7 @@ app.post('/re-optimize/:id', async (req, res) => {
             companyName: entry.companyName,
             jobTitle: entry.jobTitle,
             resumeText: masterResume.text,
-            voiceText: getActiveVoiceText(masterResume)
+            voiceText
           }
         );
 
@@ -1519,6 +1607,9 @@ app.post('/regenerate-cover-letter', async (req, res) => {
 
   try {
     const activeProf = getActiveProfile();
+    const regenJobContext = `${entry.jobTitle || ''} at ${entry.companyName || ''}: ${(entry.fullDescription || '').substring(0, 300)}`;
+    const voiceText = await autoSelectVoiceText(activeProf, regenJobContext);
+
     const coverLetterText = await generateCoverLetter(
       entry.fullDescription,
       entry.rewrittenResume.summary,
@@ -1530,7 +1621,7 @@ app.post('/regenerate-cover-letter', async (req, res) => {
         jobTitle: entry.jobTitle || 'the position',
         resumeText: activeProf?.text || entry.originalResumeText || '',
         personalNote: personalNote || '',
-        voiceText: getActiveVoiceText(activeProf)
+        voiceText
       }
     );
 
@@ -1602,7 +1693,8 @@ app.post('/analyze-text', async (req, res) => {
   }
 
   try {
-    const voiceText = getActiveVoiceText(profile);
+    const analyzeJobContext = `${pageTitle || ''} ${pageUrl || ''}: ${text.substring(0, 300)}`;
+    const voiceText = await autoSelectVoiceText(profile, analyzeJobContext);
 
     // Step 1: Detect what the text IS
     const detectionResult = await callOpenAI(
@@ -1794,7 +1886,8 @@ CRITICAL RULES:
     if (pageContext?.pageTitle) contextParts.push(`Page Title: ${pageContext.pageTitle}`);
     contextParts.push(`\n---\nCandidate Resume:\n${profile.text}`);
 
-    const voiceText = getActiveVoiceText(profile);
+    const answerJobContext = `${pageContext?.roleTitle || ''} at ${pageContext?.companyName || ''}: ${question.substring(0, 200)}`;
+    const voiceText = await autoSelectVoiceText(profile, answerJobContext);
     if (voiceText) {
       contextParts.push(`\n---\nVOICE PROFILE — The candidate's communication style, real stories, and what makes them memorable. Use this to sound genuinely like them:\n${voiceText}`);
     }
@@ -1944,7 +2037,8 @@ app.post('/answers/:id/regenerate', async (req, res) => {
     if (entry.pageContext?.roleTitle) contextParts.push(`Role: ${entry.pageContext.roleTitle}`);
     contextParts.push(`\n---\nCandidate Resume:\n${profile.text}`);
 
-    const voiceText = getActiveVoiceText(profile);
+    const regenAnswerCtx = `${entry.pageContext?.roleTitle || ''} at ${entry.pageContext?.companyName || ''}: ${entry.question.substring(0, 200)}`;
+    const voiceText = await autoSelectVoiceText(profile, regenAnswerCtx);
     if (voiceText) {
       contextParts.push(`\n---\nVOICE PROFILE — The candidate's communication style and real stories. Sound like them:\n${voiceText}`);
     }
@@ -2013,7 +2107,8 @@ Return a JSON array where each element corresponds to a field in order:
 
 Return ONLY valid JSON, no markdown, no explanation.`;
 
-    const batchVoice = getActiveVoiceText(profile);
+    const batchJobContext = `${pageContext?.roleTitle || ''} at ${pageContext?.companyName || ''}: ${fields.map(f => f.label || '').join(', ').substring(0, 200)}`;
+    const batchVoice = await autoSelectVoiceText(profile, batchJobContext);
     let userContent = `${contextParts.join('\n')}\n\n---\nForm Fields:\n${fieldDescriptions}\n\n---\nCandidate Resume:\n${profile.text}`;
     if (batchVoice) {
       userContent += `\n\n---\nVOICE PROFILE — Sound like this person:\n${batchVoice}`;
@@ -2107,7 +2202,8 @@ app.post('/refine-with-feedback', async (req, res) => {
     return res.status(400).json({ error: 'No active profile' });
   }
 
-  const voiceText = getActiveVoiceText(profile);
+  const feedbackCtx = `${context?.jobTitle || ''} at ${context?.companyName || ''}: ${(originalOutput || '').substring(0, 200)}`;
+  const voiceText = await autoSelectVoiceText(profile, feedbackCtx);
 
   try {
     let refinedInstructions;

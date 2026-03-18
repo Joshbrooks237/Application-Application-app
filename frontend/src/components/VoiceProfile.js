@@ -4,6 +4,7 @@ import {
   updateVoiceProfile,
   deleteVoiceProfile,
   activateVoiceProfile,
+  toggleVoiceAutoSelect,
   getVoiceProfiles
 } from '../api';
 
@@ -171,7 +172,7 @@ function SectionEditor({ section, value, onChange }) {
   );
 }
 
-function SlotEditor({ slot, isActive, profileId, onChanged }) {
+function SlotEditor({ slot, isActive, profileId, onChanged, autoSelect }) {
   const [expanded, setExpanded] = useState(false);
   const [sections, setSections] = useState({});
   const [saving, setSaving] = useState(false);
@@ -289,8 +290,10 @@ function SlotEditor({ slot, isActive, profileId, onChanged }) {
             {slot.name}
           </span>
           {isActive && (
-            <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-accent/20 text-accent font-medium shrink-0">
-              Active
+            <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium shrink-0 ${
+              autoSelect ? 'bg-slate-500/20 text-slate-400' : 'bg-accent/20 text-accent'
+            }`}>
+              {autoSelect ? 'Fallback' : 'Pinned'}
             </span>
           )}
         </div>
@@ -398,12 +401,26 @@ export default function VoiceProfile({ profile, onChanged }) {
   const [newName, setNewName] = useState('');
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState('');
+  const [toggling, setToggling] = useState(false);
   const fileRef = useRef();
 
   if (!profile) return null;
 
   const slots = profile.voiceProfiles || [];
   const activeSlotId = profile.activeVoiceProfileId;
+  const autoSelect = profile.voiceAutoSelect !== false;
+
+  const handleAutoToggle = async () => {
+    setToggling(true);
+    try {
+      await toggleVoiceAutoSelect(profile.id, !autoSelect);
+      onChanged();
+    } catch (err) {
+      console.error('Failed to toggle auto-select:', err);
+    } finally {
+      setToggling(false);
+    }
+  };
 
   const handleCreate = async () => {
     if (!newName.trim()) return setError('Enter a slot name');
@@ -447,15 +464,44 @@ export default function VoiceProfile({ profile, onChanged }) {
     <div className="mt-4">
       <div className="flex items-center justify-between mb-2">
         <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Voice Profile</h3>
-        {!showAdd && (
-          <button
-            onClick={() => { setShowAdd(true); setNewName(SLOT_PRESETS[slots.length % SLOT_PRESETS.length]); }}
-            className="text-[10px] font-medium text-accent hover:text-accent/80 transition-colors"
-          >
-            + Add Slot
-          </button>
-        )}
+        <div className="flex items-center gap-3">
+          {slots.length > 1 && (
+            <button
+              onClick={handleAutoToggle}
+              disabled={toggling}
+              className={`flex items-center gap-1.5 text-[10px] font-medium transition-colors ${
+                autoSelect ? 'text-emerald-400 hover:text-emerald-300' : 'text-slate-500 hover:text-slate-400'
+              }`}
+              title={autoSelect ? 'AI picks the best voice for each job (click to switch to manual)' : 'Using manually selected voice (click to enable auto-select)'}
+            >
+              <span className={`inline-block w-6 h-3.5 rounded-full transition-colors relative ${
+                autoSelect ? 'bg-emerald-500/30' : 'bg-slate-600/50'
+              }`}>
+                <span className={`absolute top-0.5 w-2.5 h-2.5 rounded-full transition-all ${
+                  autoSelect ? 'right-0.5 bg-emerald-400' : 'left-0.5 bg-slate-500'
+                }`} />
+              </span>
+              {autoSelect ? 'Auto' : 'Manual'}
+            </button>
+          )}
+          {!showAdd && (
+            <button
+              onClick={() => { setShowAdd(true); setNewName(SLOT_PRESETS[slots.length % SLOT_PRESETS.length]); }}
+              className="text-[10px] font-medium text-accent hover:text-accent/80 transition-colors"
+            >
+              + Add Slot
+            </button>
+          )}
+        </div>
       </div>
+
+      {slots.length > 1 && autoSelect && (
+        <div className="mb-2 px-2 py-1.5 bg-emerald-500/5 border border-emerald-500/10 rounded-lg">
+          <p className="text-[10px] text-emerald-400/70">
+            AI reads each job and picks the best voice — or blends two if the role crosses lanes.
+          </p>
+        </div>
+      )}
 
       {slots.length === 0 && !showAdd && (
         <div className="bg-surface border border-surface-overlay rounded-lg p-3 text-center">
@@ -478,6 +524,7 @@ export default function VoiceProfile({ profile, onChanged }) {
             isActive={slot.id === activeSlotId}
             profileId={profile.id}
             onChanged={onChanged}
+            autoSelect={autoSelect}
           />
         ))}
       </div>
