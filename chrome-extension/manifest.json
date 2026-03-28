@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Indeed Job Application Optimizer",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "description": "Scrapes Indeed job listings and optimizes your resume and cover letter using AI.",
   "permissions": ["activeTab", "scripting", "contextMenus"],
   "host_permissions": [

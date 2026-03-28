@@ -1,27 +1,34 @@
 importScripts('config.js');
 
-chrome.runtime.onInstalled.addListener(() => {
-  console.log('[Indeeeed] Extension installed successfully');
-  chrome.contextMenus.create({
-    id: 'answer-with-rio-brave',
-    title: 'Answer with Rio Brave ✨',
-    contexts: ['selection']
+function installContextMenus() {
+  const items = [
+    { id: 'answer-with-rio-brave', title: 'Answer with Rio Brave ✨', contexts: ['selection'] },
+    { id: 'optimize-with-rio-brave', title: 'Optimize with Rio Brave ✨', contexts: ['selection'] },
+    { id: 'make-resume-rio-brave', title: 'Rio Brave — Make Resume & Cover Letter', contexts: ['selection'] },
+    { id: 'fill-all-rio-brave', title: 'Fill All Fields with Rio Brave ✨', contexts: ['page'] }
+  ];
+  chrome.contextMenus.removeAll(() => {
+    if (chrome.runtime.lastError) {
+      console.warn('[Indeeeed] contextMenus.removeAll:', chrome.runtime.lastError.message);
+    }
+    for (const item of items) {
+      chrome.contextMenus.create(item, () => {
+        if (chrome.runtime.lastError) {
+          console.warn('[Indeeeed] contextMenus.create', item.id, chrome.runtime.lastError.message);
+        }
+      });
+    }
   });
-  chrome.contextMenus.create({
-    id: 'optimize-with-rio-brave',
-    title: 'Optimize with Rio Brave ✨',
-    contexts: ['selection']
-  });
-  chrome.contextMenus.create({
-    id: 'make-resume-rio-brave',
-    title: 'Rio Brave — Make Resume & Cover Letter',
-    contexts: ['selection']
-  });
-  chrome.contextMenus.create({
-    id: 'fill-all-rio-brave',
-    title: 'Fill All Fields with Rio Brave ✨',
-    contexts: ['page']
-  });
+}
+
+chrome.runtime.onInstalled.addListener((details) => {
+  console.log('[Indeeeed] Extension onInstalled:', details.reason);
+  installContextMenus();
+});
+
+// Service worker wake-up (e.g. after browser restart) — menus can be missing; ensure they exist
+chrome.runtime.onStartup.addListener(() => {
+  installContextMenus();
 });
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {

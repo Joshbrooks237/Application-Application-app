@@ -75,9 +75,10 @@ CRITICAL RULES:
 - The goal is a letter that sounds like a real human being wrote it. Someone with a life, bills, and real experience.
 
 Produce 5-8 bullet points covering:
-- LENGTH: The final letter should be short (~160–240 words). Tell the writer to cut ruthlessly — no fourth paragraph, no resume recap.
-- PUNCH: Where to land one memorable short line; mix very short sentences with normal ones for rhythm.
-- ENDEARING: One beat of genuine likability — warmth, humor, or care — without sounding needy or corporate.
+- LENGTH: Under 200 words total body. No fourth paragraph, no resume recap.
+- CLOSING: The letter should end with one short memorable original line (not a fake famous quote) tying to logic, problem-solving, or kindness in everyday work.
+- PUNCH: Where to land rhythm; mix very short sentences with normal ones.
+- ENDEARING: Thoughtful, kind professional, quietly proud — warmth or light humor, never needy or corporate.
 - Emotional register: Grounded. Warm but not syrupy. Confident but not cocky.
 - Which ONE real experience to lead with and a simple reason why it connects to this job.
 - What kind of plain, honest opening to use — no dramatic hooks, just a real sentence.
@@ -431,20 +432,35 @@ Expected format:
 
 CRITICAL RULES — EVERY ROLE MUST BE INCLUDED:
 - The master resume contains MANY different job roles. You MUST include ALL of them in your output. NEVER drop a role.
-- Split the roles into TWO groups:
-  1. "experience" — the 3-4 roles MOST RELEVANT to the target job. These go first and get full treatment (3 bullets each, heavy keyword injection).
-  2. "additionalExperience" — ALL REMAINING roles. These provide credibility, management depth, and seniority. Give each 2 bullets. Still weave in keywords where natural but keep them concise.
-- Storage/facility management roles should generally go in "additionalExperience" UNLESS the target job is specifically about facilities, property, or storage management.
-- For customer service positions, PRIORITIZE in "experience": Customer Service Associate, Medical Supply Delivery Driver, Fleet Manager, HVAC Lead Generator, and any role with direct customer/client interaction.
-- For logistics/operations positions, PRIORITIZE in "experience": Fleet Manager, Medical Supply Delivery Driver, Production Runner, Storage Facility Manager.
-- For administrative/office positions, PRIORITIZE in "experience": A&R Administrative Intern, Customer Service Associate, HVAC Lead Generator.
+
+ORDERING (read top to bottom — this overrides generic “most relevant first” if they conflict):
+- **Management / supervisory / lead roles first:** Any role where the candidate managed people, ran a site or operation as the lead, or owned team outcomes should appear **before** individual-contributor roles, **when both are in the same section**. Among manager/lead roles, order by **relevance to the target job** (strongest match first).
+- **Then most relevant non-manager roles:** After leads/managers, order remaining roles by **relevance to the target job** (most relevant next, then downward).
+- Tie-breakers when relevance is similar (still respect manager-first above): Storage/facility management roles usually sit lower unless the target job is specifically about facilities, property, or storage management. For **customer service** targets, favor roles with direct customer/client interaction. For **logistics/operations** targets, favor Fleet Manager, delivery/ops, production runner, storage leadership when relevant. For **administrative/office** targets, favor admin, CS, and coordination-heavy roles.
+
+Split into TWO groups:
+- "experience" — The **primary** roles for this application (typically **3–5 roles**, but use more slots if needed so **no** strong management role is buried just to hit a number). **Prioritize management/supervisory/lead roles here** when they belong in the spotlight; fill remaining slots with the next-most-relevant roles. Give **about 3 substantive bullets per role** (add a **4th** when a metric or scope detail must stay).
+- "additionalExperience" — **ALL REMAINING** roles, same ordering rules (managers/leads before ICs where applicable, then by relevance). Typically **2 bullets per role**; add a **3rd** when needed so facts are not lost. Weave keywords where natural.
+
+LENGTH — NO ARTIFICIAL CAP:
+- Use **as much space as the content needs**. Do **not** shorten, compress, or strip substance to hit a word count. If you must choose between filler and a **real metric**, keep the metric.
+
+WARMTH & HUMAN VOICE (STILL REQUIRED):
+- This resume is ATS-friendly and plain — but it must NOT read cold, robotic, or like a keyword stack. A real person should sound like someone you'd want on the team: grounded, positive, approachable.
+- Summary: Write like a human who is proud of their work and clear about what they bring — warm confidence, not corporate drone. One or two sentences can show care for people, quality, or service where that's true to the master resume.
+- Bullets: Use strong plain verbs. Where it fits the facts, show the human side — building trust, helping customers through a rough day, keeping things running so others don't have to worry. Avoid sterile openings like "Responsible for" or "Utilized" when a direct human verb works better.
+- Do NOT add fake enthusiasm, exclamation points, or cheesy adjectives ("passionate," "rockstar," "guru"). Real warmth is specific: what they actually did for people or outcomes.
+- Keywords still belong — woven in so they sound like something a person would naturally say, not a list stapled to the page.
+
+PLAIN HUMAN VOICE (REQUIRED):
+- Write like a real person talking about their work, not a corporate document. Avoid buzzwords like 'leveraged,' 'utilized,' 'spearheaded,' 'dynamic,' and 'synergy.' Use plain direct language. Short sentences over long ones. Real words over impressive ones.
 
 REWRITING RULES:
 - Naturally incorporate as many keywords and exact multi-word phrases as possible without keyword stuffing.
 - Pay special attention to including EXACT multi-word phrases (marked as "phrase") since ATS systems scan for complete phrases.
 - Keep all facts true — do not invent experience or skills.
 - Preserve the candidate's voice.
-- Rewrite: summary, skills list, 3 bullet points per "experience" role, 2 bullet points per "additionalExperience" role.
+- Rewrite: summary, skills list, and bullets per role as above — each bullet should be tight and readable, but **long enough to carry real facts** (no trimming for length alone).
 - NEVER mention "Indeeeed Optimizer", "Indeeeed", "Rio Brave", "Rio Brave LLC", or any personal AI tool/app/software the candidate built UNLESS the target job is explicitly in software development, AI, tech, or engineering. For all other roles (customer service, leasing, sales, medical, property management, brand ambassador, administrative, etc.) — REMOVE Rio Brave and any personal app/tool from the experience section entirely. Do not include it in experience, additionalExperience, skills, or summary.
 - NEVER invent metrics or scenarios. Each metric belongs to ONE role only — never mix them:
   • 731 units, 5.0 Google rating, 261 reviews → A-AAAKey Mini Storage ONLY
@@ -482,6 +498,8 @@ This person is not desperate. They are not begging. They are someone who has wor
 OPENING HOOK: Start with something real and grounded — a simple connection between the candidate's experience and this role. NEVER open with "I am writing to apply" or any generic opener. But also NEVER open with dramatic metaphors, overwrought imagery, or try-hard creative writing. No "hemorrhaging," no "tumors," no "ground zero." Just a clear, honest first sentence that makes the reader want to keep going.
 
 VOICE: Write like a real person sat down at their kitchen table and wrote this. Plain language. No thesaurus words. No corporate buzzwords like "systems thinking," "diagnostic mindset," "paradigm," or "synergy." If a normal person wouldn't say it out loud to a friend, don't write it. Short sentences are fine. Contractions are fine. The goal is a letter that sounds like it was written by a human being, not an AI trying to sound impressive.
+
+Write like a real person talking about their work, not a corporate document. Avoid buzzwords like 'leveraged,' 'utilized,' 'spearheaded,' 'dynamic,' and 'synergy.' Use plain direct language. Short sentences over long ones. Real words over impressive ones.
 
 CRITICAL — DO NOT SOUND LIKE AI:
 The biggest failure mode is sounding artificial. Read your output back. If any sentence sounds like it came from a language model, rewrite it.
@@ -523,25 +541,33 @@ TONE GUIDE:
 - Direct: No filler. Short sentences. Respects the reader's time completely.
 - Enthusiastic: Genuinely excited. Shows they actually looked into the company.
 
-LENGTH & PACE (NON-NEGOTIABLE):
-- Keep the whole letter body tight: about 160–240 words total (not counting salutation). Shorter beats longer. If it reads like a wall of text, cut it.
-- 2 or 3 short paragraphs only. No fourth paragraph. No recap of the entire resume.
-- Punchy: mix in a few very short sentences (even 3–6 words) for rhythm. One line that sticks is worth more than three polite ones.
-- Endearing: let a little warmth show — likable, human, the kind of person you'd want in the break room — without sounding cheesy or needy. One small genuine beat (gratitude, humor, or care for the work) is enough.
+LENGTH & STRUCTURE (NON-NEGOTIABLE):
+- Your output is ONLY the letter body. The DOCX template adds **once each**: today's date, the line **Dear Hiring Manager,**, and **Sincerely,** plus the candidate's name. Do NOT put a date, "Dear Hiring Manager," "Dear [name]," "Sincerely," or the candidate's name in your output — any duplicate breaks the letter.
+- **Exactly 3 paragraphs maximum**, separated by a **blank line** between paragraphs. If you write a 4th paragraph, you have failed.
+- **150–200 words total** for the body only. Count every word; stay inside this range.
+- Do not repeat the same paragraph, hook, or closing twice. No duplicate sections.
+
+VOICE — WARM, ENDEARING, HUMAN:
+- Sound like a **thoughtful, kind professional** who is **quietly proud** of real work done well — never boastful, never desperate.
+- **Subtle personality:** a light touch of dry humor, a small wise observation, or a human moment — never a joke that could flop, never try-hard wit.
+- **Genuinely human:** contractions OK; plain words; the reader should feel they met someone real.
+- **Show warmth through specifics:** Instead of saying "I'm passionate about customer service," say "I like the moment when someone walks in frustrated and leaves smiling." Instead of "I value teamwork," say "The best days at work were the ones where everyone knew what to do without being told."
+- **One small vulnerable truth:** A brief honest moment that makes them human — "I've swept floors at 2am and opened the office at 8am the next morning," or "The 5.0 rating didn't happen by accident — it happened because I showed up every day even when I didn't want to."
 
 CONTENT:
-- One strong achievement with a real number from the resume (not a list of everything they ever did).
-- One clear line tying their experience to this role.
-- If relevant keywords from the job fit in one breath, use them — never stuff.
+- One strong achievement with a real number from the resume (not a resume dump).
+- One clear tie to this role. Weave the job’s important phrases in **naturally** — as if they belong in conversation — never a checklist or forced keyword stack.
 
-HUMAN-TOUCH: One short beat (1 sentence, max 2) — a real detail about the company/role or why this work matters to them. Warm, not corporate.
+- **Paragraph 3:** One brief beat about the company, the role, or why the work matters — warm, specific, not corporate. Then end with **one short memorable line** (your own words; no fake quotes) that ties together **who they are as a person** — a line about clear thinking, showing up, problem-solving, or kindness in everyday work. Under ~25 words. Should feel like a closing thought that lingers.
 
-STRUCTURE:
-- Paragraph 1: Hook + why this role fits them (tight).
-- Paragraph 2: Proof — the number, the parallel experience, done fast.
-- Paragraph 3 (optional if already tight): One human line + closing sentence only — no new essay.
+Do NOT use only "Thank you for your consideration" as the ending. Do NOT add "Sincerely" or a name after that line — the template adds the signature once.
 
-CLOSING: 12–22 words. Sharp, warm, confident. Connect what they bring to what the team needs. NEVER use "I am excited to apply", "I look forward to", or "Thank you for your consideration." End like a person signing off, not a form letter.
+WHAT MAKES A LETTER ENDEARING:
+- **Specificity over generality:** "I managed 731 units" beats "I have extensive experience."
+- **Honest bridges:** "While my property management background is in storage facilities, the core skills transfer directly" beats pretending you have apartment experience.
+- **Small human moments:** "The best part of the job was helping someone who'd been turned away everywhere else" beats "I am passionate about helping people."
+- **Quiet confidence:** "I've done this work. I can do it here." beats "I am confident I would be a great fit."
+- **A closing line they remember:** Something true about how you work or what you believe. "Good work is just showing up when it's hard and doing it anyway." "The best customer service is just figuring out what someone needs before they have to ask twice." Make it sound like something this person would actually say.
 
 ABSOLUTE TRUTH RULES — EVERY WORD MUST BE DEFENSIBLE IN AN INTERVIEW:
 - NEVER invent a scenario, story, or hypothetical example. Do NOT write "for instance" or "for example" followed by a made-up situation. If you need an example, use ONLY real ones from the resume.
@@ -558,17 +584,16 @@ ABSOLUTE TRUTH RULES — EVERY WORD MUST BE DEFENSIBLE IN AN INTERVIEW:
 - Use the candidate's real story with real details — real company names, real unit counts, real challenges they faced. Authentic specifics are more compelling than fabricated experience.
 - NEVER mention "Indeeeed Optimizer", "Indeeeed", "Rio Brave", "Rio Brave LLC", or any personal AI tool/app the candidate built, unless the job is explicitly in tech/software development.
 - Joshua is conversational in Spanish but NOT fluent. If Spanish language skills are relevant to the role, describe them honestly as "conversational Spanish skills" or "working knowledge of Spanish." NEVER claim fluency, bilingual status, or "fluency in both English and Spanish."
-- End with ONE closing signature only — never duplicate "Sincerely" or any sign-off. Do NOT include the date, "Dear Hiring Manager," or the candidate's name after "Sincerely" — the document template adds those automatically.
+- Never duplicate a sign-off inside the body. Do NOT include the date, "Dear Hiring Manager,", "Sincerely,", or the candidate's name in your output — the template adds them exactly once.
 
 FORMATTING RULES:
-- Use the candidate's REAL NAME from their resume — NEVER write [Your Name] or [Candidate Name]
+- Use the candidate's REAL NAME from their resume where it fits naturally in the body — NEVER write [Your Name] or [Candidate Name]. Do not add a standalone signature line or printed name; the template adds "Sincerely, [name]" once.
 - Use the REAL COMPANY NAME provided — NEVER write [Company Name] or [Employer's Name]
 - Use the REAL JOB TITLE provided — NEVER write [Job Title] or [Position]
-- Use TODAY'S DATE provided — NEVER write [Date] or [Today's Date]
-- Address the letter to "Dear Hiring Manager," if no specific name is given
+- NEVER write [Date] or [Today's Date] — the template supplies the date
 - NEVER use placeholder brackets like [ ] anywhere in the output
 
-Return only the cover letter text, ready to send with no placeholders.`
+Return only the three body paragraphs (blank line between each), no placeholders.`
 };
 
 // ── OpenAI Calls ──
@@ -636,7 +661,8 @@ function buildResumeUserContent(resumeText, keywords, voiceText) {
   if (voiceText) {
     content += `\n\n---\nVOICE PROFILE — This captures the candidate's communication style, real stories, and what makes them memorable. Use this to make the resume sound genuinely like this person:\n${voiceText}`;
   }
-  content += `\n\n---\nATS Keywords:\n${keywordList}\n\n---\nATS Phrases (use these EXACT multi-word phrases):\n${phraseList}`;
+  content += `\n\n---\nLENGTH: No target word count — use as much space as needed for every role and every important fact. Order: management/lead roles first (by relevance), then other roles by relevance.\nVOICE: Warm, human, and readable — not robotic or keyword-stuffed.\n`;
+  content += `\n---\nATS Keywords:\n${keywordList}\n\n---\nATS Phrases (use these EXACT multi-word phrases):\n${phraseList}`;
   return content;
 }
 
@@ -652,7 +678,8 @@ async function rewriteResumeWithStrategy(resumeText, keywords, retryInstruction,
   const raw = await callOpenAI(
     systemPrompt,
     buildResumeUserContent(resumeText, keywords, voiceText),
-    retryInstruction ? 'Resume Rewrite (retry)' : 'Resume Rewrite'
+    retryInstruction ? 'Resume Rewrite (retry)' : 'Resume Rewrite',
+    { maxTokens: 8192 }
   );
 
   try {
@@ -819,13 +846,13 @@ async function generateCoverLetter(jobDescription, resumeSummary, keywords, tone
 
   const userContent = contentParts.join('\n');
 
-  const raw = await callOpenAI(prompt, userContent, 'Cover Letter Generation', { maxTokens: 900 });
+  const raw = await callOpenAI(prompt, userContent, 'Cover Letter Generation', { maxTokens: 550 });
 
   let cleaned = raw.replace(/```\n?/g, '').trim();
   cleaned = replacePlaceholders(cleaned, candidateName, companyName, jobTitle);
 
   console.log('[Server] Cover letter post-processed — remaining brackets:', (cleaned.match(/\[[^\]]+\]/g) || []).length);
-  return cleaned;
+  return { text: cleaned, letterDate: today };
 }
 
 // ── Keyword Match Scoring ──
@@ -1344,7 +1371,7 @@ app.post('/optimize', async (req, res) => {
         const useTone = (attempt === MAX_RETRIES && scoring.matchScore < MATCH_THRESHOLD)
           ? 'Conversational' : selectedTone;
 
-        const coverLetterText = await generateCoverLetter(
+        const { text: coverLetterText, letterDate } = await generateCoverLetter(
           fullDescription,
           rewrittenResume.summary,
           keywords,
@@ -1358,7 +1385,7 @@ app.post('/optimize', async (req, res) => {
           }
         );
 
-        bestResult = { rewrittenResume, coverLetterText, scoring };
+        bestResult = { rewrittenResume, coverLetterText, letterDate, scoring };
       }
 
       if (scoring.matchScore >= MATCH_THRESHOLD) {
@@ -1367,7 +1394,7 @@ app.post('/optimize', async (req, res) => {
       }
     }
 
-    const { rewrittenResume, coverLetterText, scoring } = bestResult;
+    const { rewrittenResume, coverLetterText, letterDate, scoring } = bestResult;
     const belowThreshold = scoring.matchScore < MATCH_THRESHOLD;
 
     console.log(`[Server] Final score: ${scoring.matchScore}% after ${attemptsMade} attempt(s)${belowThreshold ? ' (below threshold)' : ''}`);
@@ -1389,11 +1416,11 @@ app.post('/optimize', async (req, res) => {
     const resumePdfFilePath = path.join(__dirname, 'output', resumePdfFileName);
     const coverLetterFilePath = path.join(__dirname, 'output', coverLetterFileName);
 
-    const keywordStrings = (keywords.keywords || []).map(k => k.keyword);
+    const keywordSpecs = keywords.keywords || [];
 
-    await generateResumeDOCX(rewrittenResume, keywordStrings, jobTitle, companyName, resumeFilePath, masterResume.text);
-    await generateResumePDF(rewrittenResume, keywordStrings, resumePdfFilePath, masterResume.text);
-    await generateCoverLetterDOCX(coverLetterText, keywordStrings, jobTitle, companyName, coverLetterFilePath, extractCandidateName(masterResume.text));
+    await generateResumeDOCX(rewrittenResume, keywordSpecs, jobTitle, companyName, resumeFilePath, masterResume.text);
+    await generateResumePDF(rewrittenResume, keywordSpecs, resumePdfFilePath, masterResume.text);
+    await generateCoverLetterDOCX(coverLetterText, keywordSpecs, jobTitle, companyName, coverLetterFilePath, extractCandidateName(masterResume.text), letterDate);
     console.log('[Server] All output files saved');
 
     const historyEntry = {
@@ -1519,7 +1546,7 @@ app.post('/re-optimize/:id', async (req, res) => {
       if (scoring.matchScore > bestScore) {
         bestScore = scoring.matchScore;
 
-        const coverLetterText = await generateCoverLetter(
+        const { text: coverLetterText, letterDate } = await generateCoverLetter(
           entry.fullDescription,
           rewrittenResume.summary,
           keywords,
@@ -1533,7 +1560,7 @@ app.post('/re-optimize/:id', async (req, res) => {
           }
         );
 
-        bestResult = { rewrittenResume, coverLetterText, scoring };
+        bestResult = { rewrittenResume, coverLetterText, letterDate, scoring };
       }
 
       if (scoring.matchScore >= MATCH_THRESHOLD) {
@@ -1551,7 +1578,7 @@ app.post('/re-optimize/:id', async (req, res) => {
       });
     }
 
-    const { rewrittenResume, coverLetterText, scoring } = bestResult;
+    const { rewrittenResume, coverLetterText, letterDate, scoring } = bestResult;
     const safeCompany = sanitizeForFilename(entry.companyName);
     const safeTitle = sanitizeForFilename(entry.jobTitle);
     const version = optimizationHistory.filter(
@@ -1564,11 +1591,11 @@ app.post('/re-optimize/:id', async (req, res) => {
     const resumeFilePath = path.join(__dirname, 'output', resumeFileName);
     const resumePdfFilePath = path.join(__dirname, 'output', resumePdfFileName);
     const coverLetterFilePath = path.join(__dirname, 'output', coverLetterFileName);
-    const keywordStrings = entry.keywords.map(k => k.keyword);
+    const keywordSpecs = entry.keywords || [];
 
-    await generateResumeDOCX(rewrittenResume, keywordStrings, entry.jobTitle, entry.companyName, resumeFilePath, masterResume.text);
-    await generateResumePDF(rewrittenResume, keywordStrings, resumePdfFilePath, masterResume.text);
-    await generateCoverLetterDOCX(coverLetterText, keywordStrings, entry.jobTitle, entry.companyName, coverLetterFilePath, extractCandidateName(masterResume.text));
+    await generateResumeDOCX(rewrittenResume, keywordSpecs, entry.jobTitle, entry.companyName, resumeFilePath, masterResume.text);
+    await generateResumePDF(rewrittenResume, keywordSpecs, resumePdfFilePath, masterResume.text);
+    await generateCoverLetterDOCX(coverLetterText, keywordSpecs, entry.jobTitle, entry.companyName, coverLetterFilePath, extractCandidateName(masterResume.text), letterDate);
 
     // Update the history entry in place
     entry.rewrittenResume = rewrittenResume;
@@ -1626,7 +1653,7 @@ app.post('/regenerate-cover-letter', async (req, res) => {
     const regenJobContext = `${entry.jobTitle || ''} at ${entry.companyName || ''}: ${(entry.fullDescription || '').substring(0, 300)}`;
     const voiceText = await autoSelectVoiceText(activeProf, regenJobContext);
 
-    const coverLetterText = await generateCoverLetter(
+    const { text: coverLetterText, letterDate } = await generateCoverLetter(
       entry.fullDescription,
       entry.rewrittenResume.summary,
       { keywords: entry.keywords },
@@ -1646,8 +1673,8 @@ app.post('/regenerate-cover-letter', async (req, res) => {
     const coverLetterFileName = `coverletter-${tone.toLowerCase()}-${safeCompany}-${safeTitle}.docx`;
     const coverLetterFilePath = path.join(__dirname, 'output', coverLetterFileName);
 
-    const keywordStrings = entry.keywords.map(k => k.keyword);
-    await generateCoverLetterDOCX(coverLetterText, keywordStrings, entry.jobTitle, entry.companyName, coverLetterFilePath, extractCandidateName(getActiveProfile()?.text || entry.originalResumeText || ''));
+    const keywordSpecs = entry.keywords || [];
+    await generateCoverLetterDOCX(coverLetterText, keywordSpecs, entry.jobTitle, entry.companyName, coverLetterFilePath, extractCandidateName(getActiveProfile()?.text || entry.originalResumeText || ''), letterDate);
 
     if (!entry.coverLetterVersions) entry.coverLetterVersions = [];
     if (entry.coverLetterText && entry.coverLetterVersions.length === 0) {
@@ -1771,7 +1798,7 @@ app.post('/analyze-text', async (req, res) => {
         const scoring = calculateMatchScore(masterResume.text, keywords, rewrittenResume);
         if (scoring.matchScore > bestScore) {
           bestScore = scoring.matchScore;
-          const coverLetterText = await generateCoverLetter(
+          const { text: coverLetterText, letterDate } = await generateCoverLetter(
             text, rewrittenResume.summary, keywords, 'Professional',
             {
               candidateName: extractCandidateName(masterResume.text),
@@ -1781,7 +1808,7 @@ app.post('/analyze-text', async (req, res) => {
               voiceText
             }
           );
-          bestResult = { rewrittenResume, coverLetterText, scoring };
+          bestResult = { rewrittenResume, coverLetterText, letterDate, scoring };
         }
         if (scoring.matchScore >= MATCH_THRESHOLD) break;
       }
@@ -1790,7 +1817,7 @@ app.post('/analyze-text', async (req, res) => {
         throw new Error('Resume optimization failed. Please try again.');
       }
 
-      const { rewrittenResume, coverLetterText, scoring } = bestResult;
+      const { rewrittenResume, coverLetterText, letterDate, scoring } = bestResult;
       const optimizationId = `opt-${Date.now()}`;
       const version = optimizationHistory.filter(
         h => h.companyName === companyName && h.jobTitle === jobTitle
@@ -1803,11 +1830,11 @@ app.post('/analyze-text', async (req, res) => {
       const resumeFilePath = path.join(__dirname, 'output', resumeFileName);
       const resumePdfFilePath = path.join(__dirname, 'output', resumePdfFileName);
       const coverLetterFilePath = path.join(__dirname, 'output', coverLetterFileName);
-      const keywordStrings = (keywords.keywords || []).map(k => k.keyword);
+      const keywordSpecs = keywords.keywords || [];
 
-      await generateResumeDOCX(rewrittenResume, keywordStrings, jobTitle, companyName, resumeFilePath, masterResume.text);
-      await generateResumePDF(rewrittenResume, keywordStrings, resumePdfFilePath, masterResume.text);
-      await generateCoverLetterDOCX(coverLetterText, keywordStrings, jobTitle, companyName, coverLetterFilePath, extractCandidateName(masterResume.text));
+      await generateResumeDOCX(rewrittenResume, keywordSpecs, jobTitle, companyName, resumeFilePath, masterResume.text);
+      await generateResumePDF(rewrittenResume, keywordSpecs, resumePdfFilePath, masterResume.text);
+      await generateCoverLetterDOCX(coverLetterText, keywordSpecs, jobTitle, companyName, coverLetterFilePath, extractCandidateName(masterResume.text), letterDate);
 
       const historyEntry = {
         id: optimizationId,
@@ -2365,7 +2392,7 @@ Return ONLY the rewriting instructions, nothing else.`,
       systemPrompt,
       userParts.join('\n'),
       'Feedback Refinement',
-      type === 'cover_letter' ? { maxTokens: 900 } : {}
+      type === 'cover_letter' ? { maxTokens: 550 } : {}
     );
 
     let cleanedOutput = refined.replace(/```\n?/g, '').trim();

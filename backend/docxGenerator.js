@@ -9,9 +9,9 @@ const FONT_SIZE_NAME = 28;      // 14pt
 const FONT_SIZE_HEADING = 22;   // 11pt
 const FONT_SIZE_BODY = 20;      // 10pt
 const FONT_SIZE_CONTACT = 18;   // 9pt
-const COLOR_PRIMARY = '2557A7';
-const COLOR_TEXT = '1F2937';
-const COLOR_SUBTEXT = '6B7280';
+const ATS_BLACK = '000000';
+
+const CLOSING_LINE = '(?:sincerely|best regards|warm regards|kind regards|regards|respectfully|warmly|yours truly|yours sincerely)';
 
 /**
  * Extract candidate contact info from raw resume text.
@@ -48,59 +48,61 @@ function extractContactInfo(resumeText) {
   return { name, contactLine };
 }
 
-function createHighlightedRuns(text, keywords, baseFontSize = FONT_SIZE_BODY) {
-  if (!keywords || keywords.length === 0) {
-    return [new TextRun({ text, font: FONT, size: baseFontSize, color: COLOR_TEXT })];
+/** Plain black body text for resumes — no keyword color or bold (ATS / print). */
+function createPlainRuns(text, baseFontSize = FONT_SIZE_BODY) {
+  return [new TextRun({
+    text: text || '',
+    font: FONT,
+    size: baseFontSize,
+    color: ATS_BLACK
+  })];
+}
+
+/**
+ * Remove AI-included closings (template adds "Sincerely," + name).
+ */
+function stripTrailingSignatureBlock(trimmed) {
+  let t = trimmed;
+  t = t.replace(new RegExp(`\\n\\s*${CLOSING_LINE}\\b[,.]?\\s*[\\s\\S]*$`, 'is'), '');
+  t = t.replace(new RegExp(`([.!?])\\s+${CLOSING_LINE}\\b[,.]?\\s*[\\s\\S]*$`, 'i'), '$1');
+  t = t.replace(new RegExp(`\\s+${CLOSING_LINE}\\b[,.]?\\s*[A-Za-z][A-Za-z\\s.'-]{0,100}$`, 'i'), '');
+  return t.trim();
+}
+
+function extractCoverLetterBodyParagraphs(coverLetterText) {
+  const rawParagraphs = coverLetterText.split(/\n\s*\n/).map(p => p.trim()).filter(Boolean);
+  const bodyParagraphs = [];
+  const seenNorm = new Set();
+
+  for (const p of rawParagraphs) {
+    let trimmed = stripTrailingSignatureBlock(p.trim());
+    if (!trimmed) continue;
+
+    const lower = trimmed.toLowerCase();
+    if (/^\w+\s+\d{1,2},?\s+\d{4}$/.test(trimmed)) continue;
+    if (/^\d{1,2}[\/-]\d{1,2}[\/-]\d{2,4}$/.test(trimmed)) continue;
+    if (/^dear\s+/i.test(lower)) continue;
+    if (new RegExp(`^${CLOSING_LINE}\\b`, 'i').test(lower)) continue;
+    if (/^thanks,?\s*$/i.test(trimmed)) continue;
+    if (/^thank you for (your )?(time|consideration)[.!]?\s*$/i.test(lower)) continue;
+
+    if (trimmed.length < 45 && /^[a-z\s.\-']+$/i.test(trimmed) && !lower.includes(' the ') && !lower.includes(' and ')) {
+      continue;
+    }
+
+    const norm = lower.replace(/\s+/g, ' ').trim();
+    if (seenNorm.has(norm)) continue;
+    seenNorm.add(norm);
+
+    bodyParagraphs.push(trimmed);
   }
 
-  const sortedKeywords = [...keywords].sort((a, b) => b.length - a.length);
-  const runs = [];
-  let remaining = text;
-
-  while (remaining.length > 0) {
-    let earliestIndex = remaining.length;
-    let matchedKeyword = null;
-
-    for (const kw of sortedKeywords) {
-      const idx = remaining.toLowerCase().indexOf(kw.toLowerCase());
-      if (idx !== -1 && idx < earliestIndex) {
-        earliestIndex = idx;
-        matchedKeyword = kw;
-      }
-    }
-
-    if (matchedKeyword === null) {
-      runs.push(new TextRun({ text: remaining, font: FONT, size: baseFontSize, color: COLOR_TEXT }));
-      break;
-    }
-
-    if (earliestIndex > 0) {
-      runs.push(new TextRun({
-        text: remaining.substring(0, earliestIndex),
-        font: FONT, size: baseFontSize, color: COLOR_TEXT
-      }));
-    }
-
-    const matchLength = matchedKeyword.length;
-    const matchedText = remaining.substring(earliestIndex, earliestIndex + matchLength);
-
-    runs.push(new TextRun({
-      text: matchedText,
-      font: FONT,
-      size: baseFontSize,
-      color: COLOR_PRIMARY,
-      bold: true
-    }));
-
-    remaining = remaining.substring(earliestIndex + matchLength);
-  }
-
-  return runs;
+  return bodyParagraphs.slice(0, 3);
 }
 
 /**
  * Generates a tailored resume DOCX with candidate name/contact header,
- * professional formatting, and bolded ATS keywords.
+ * professional formatting; all body text black (no keyword color).
  */
 async function generateResumeDOCX(rewrittenResume, keywords, jobTitle, companyName, outputPath, masterResumeText) {
   console.log('[DOCX] Generating resume document...');
@@ -117,7 +119,7 @@ async function generateResumeDOCX(rewrittenResume, keywords, jobTitle, companyNa
         font: FONT,
         size: FONT_SIZE_NAME,
         bold: true,
-        color: COLOR_TEXT
+        color: ATS_BLACK
       })],
       alignment: AlignmentType.CENTER,
       spacing: { after: 40 }
@@ -131,7 +133,7 @@ async function generateResumeDOCX(rewrittenResume, keywords, jobTitle, companyNa
         text: contactLine,
         font: FONT,
         size: FONT_SIZE_CONTACT,
-        color: COLOR_SUBTEXT
+        color: ATS_BLACK
       })],
       alignment: AlignmentType.CENTER,
       spacing: { after: 200 }
@@ -146,14 +148,14 @@ async function generateResumeDOCX(rewrittenResume, keywords, jobTitle, companyNa
         font: FONT,
         size: FONT_SIZE_HEADING,
         bold: true,
-        color: COLOR_PRIMARY,
+        color: ATS_BLACK,
         allCaps: true
       })],
       spacing: { before: 120, after: 80 },
-      border: { bottom: { style: BorderStyle.SINGLE, size: 1, color: COLOR_PRIMARY } }
+      border: { bottom: { style: BorderStyle.SINGLE, size: 1, color: ATS_BLACK } }
     }),
     new Paragraph({
-      children: createHighlightedRuns(rewrittenResume.summary || '', keywords),
+      children: createPlainRuns(rewrittenResume.summary || ''),
       spacing: { after: 200 }
     })
   );
@@ -168,11 +170,11 @@ async function generateResumeDOCX(rewrittenResume, keywords, jobTitle, companyNa
           font: FONT,
           size: FONT_SIZE_HEADING,
           bold: true,
-          color: COLOR_PRIMARY,
+          color: ATS_BLACK,
           allCaps: true
         })],
         spacing: { before: 200, after: 80 },
-        border: { bottom: { style: BorderStyle.SINGLE, size: 1, color: COLOR_PRIMARY } }
+        border: { bottom: { style: BorderStyle.SINGLE, size: 1, color: ATS_BLACK } }
       })
     );
 
@@ -182,7 +184,7 @@ async function generateResumeDOCX(rewrittenResume, keywords, jobTitle, companyNa
     }
     for (const chunk of skillChunks) {
       sections.push(new Paragraph({
-        children: createHighlightedRuns(chunk, keywords),
+        children: createPlainRuns(chunk),
         alignment: AlignmentType.CENTER,
         spacing: { after: 40 }
       }));
@@ -199,11 +201,11 @@ async function generateResumeDOCX(rewrittenResume, keywords, jobTitle, companyNa
           font: FONT,
           size: FONT_SIZE_HEADING,
           bold: true,
-          color: COLOR_PRIMARY,
+          color: ATS_BLACK,
           allCaps: true
         })],
         spacing: { before: 200, after: 80 },
-        border: { bottom: { style: BorderStyle.SINGLE, size: 1, color: COLOR_PRIMARY } }
+        border: { bottom: { style: BorderStyle.SINGLE, size: 1, color: ATS_BLACK } }
       })
     );
 
@@ -214,13 +216,13 @@ async function generateResumeDOCX(rewrittenResume, keywords, jobTitle, companyNa
           font: FONT,
           size: FONT_SIZE_BODY,
           bold: true,
-          color: COLOR_TEXT
+          color: ATS_BLACK
         }),
         new TextRun({
           text: `  |  ${role.company || ''}`,
           font: FONT,
           size: FONT_SIZE_BODY,
-          color: COLOR_SUBTEXT
+          color: ATS_BLACK
         })
       ];
       if (role.dates) {
@@ -229,8 +231,7 @@ async function generateResumeDOCX(rewrittenResume, keywords, jobTitle, companyNa
             text: `  |  ${role.dates}`,
             font: FONT,
             size: FONT_SIZE_BODY,
-            italics: true,
-            color: COLOR_SUBTEXT
+            color: ATS_BLACK
           })
         );
       }
@@ -246,8 +247,8 @@ async function generateResumeDOCX(rewrittenResume, keywords, jobTitle, companyNa
         sections.push(
           new Paragraph({
             children: [
-              new TextRun({ text: '•  ', font: FONT, size: FONT_SIZE_BODY, color: COLOR_SUBTEXT }),
-              ...createHighlightedRuns(bullet, keywords)
+              new TextRun({ text: '•  ', font: FONT, size: FONT_SIZE_BODY, color: ATS_BLACK }),
+              ...createPlainRuns(bullet)
             ],
             spacing: { after: 40 },
             indent: { left: 360 }
@@ -267,11 +268,11 @@ async function generateResumeDOCX(rewrittenResume, keywords, jobTitle, companyNa
           font: FONT,
           size: FONT_SIZE_HEADING,
           bold: true,
-          color: COLOR_PRIMARY,
+          color: ATS_BLACK,
           allCaps: true
         })],
         spacing: { before: 200, after: 80 },
-        border: { bottom: { style: BorderStyle.SINGLE, size: 1, color: COLOR_PRIMARY } }
+        border: { bottom: { style: BorderStyle.SINGLE, size: 1, color: ATS_BLACK } }
       })
     );
 
@@ -282,13 +283,13 @@ async function generateResumeDOCX(rewrittenResume, keywords, jobTitle, companyNa
           font: FONT,
           size: FONT_SIZE_BODY,
           bold: true,
-          color: COLOR_TEXT
+          color: ATS_BLACK
         }),
         new TextRun({
           text: `  |  ${role.company || ''}`,
           font: FONT,
           size: FONT_SIZE_BODY,
-          color: COLOR_SUBTEXT
+          color: ATS_BLACK
         })
       ];
       if (role.dates) {
@@ -297,8 +298,7 @@ async function generateResumeDOCX(rewrittenResume, keywords, jobTitle, companyNa
             text: `  |  ${role.dates}`,
             font: FONT,
             size: FONT_SIZE_BODY,
-            italics: true,
-            color: COLOR_SUBTEXT
+            color: ATS_BLACK
           })
         );
       }
@@ -314,8 +314,8 @@ async function generateResumeDOCX(rewrittenResume, keywords, jobTitle, companyNa
         sections.push(
           new Paragraph({
             children: [
-              new TextRun({ text: '•  ', font: FONT, size: FONT_SIZE_BODY, color: COLOR_SUBTEXT }),
-              ...createHighlightedRuns(bullet, keywords)
+              new TextRun({ text: '•  ', font: FONT, size: FONT_SIZE_BODY, color: ATS_BLACK }),
+              ...createPlainRuns(bullet)
             ],
             spacing: { after: 40 },
             indent: { left: 360 }
@@ -342,48 +342,25 @@ async function generateResumeDOCX(rewrittenResume, keywords, jobTitle, companyNa
 }
 
 /**
- * Generates a cover letter DOCX with professional formatting
- * and bolded keywords.
+ * Generates a cover letter DOCX: one date, one salutation, ≤3 body paragraphs, one signature line.
  */
-async function generateCoverLetterDOCX(coverLetterText, keywords, jobTitle, companyName, outputPath, candidateName) {
+async function generateCoverLetterDOCX(coverLetterText, _keywords, jobTitle, companyName, outputPath, candidateName, letterDate) {
   console.log('[DOCX] Generating cover letter document...');
 
-  // Strip date lines, salutations, and signatures the AI may have included
-  // since the DOCX template adds its own
-  const rawParagraphs = coverLetterText.split('\n\n').filter(p => p.trim());
-  const bodyParagraphs = [];
-
-  for (const p of rawParagraphs) {
-    const trimmed = p.trim();
-    const lower = trimmed.toLowerCase();
-    // Skip date-only lines (e.g. "March 12, 2026" or "03/12/2026")
-    if (/^\w+\s+\d{1,2},?\s+\d{4}$/.test(trimmed)) continue;
-    if (/^\d{1,2}[\/-]\d{1,2}[\/-]\d{2,4}$/.test(trimmed)) continue;
-    // Skip standalone salutations
-    if (/^dear\s+/i.test(lower) && lower.length < 60) continue;
-    // Skip any paragraph that starts with a closing keyword (catches
-    // "Sincerely,", "Sincerely,\nJoshua Brooks", "Sincerely, Joshua Brooks", etc.)
-    if (/^(sincerely|regards|best regards|warm regards|respectfully|warmly|thank you)\b/i.test(lower)) continue;
-    // Skip name-only lines after signature (just a name, < 40 chars)
-    if (trimmed.length < 40 && /^[a-z\s.\-']+$/i.test(trimmed) && !lower.includes(' the ') && !lower.includes(' and ')) continue;
-
-    // If a body paragraph ends with a signature block appended via single newline,
-    // strip the trailing signature portion
-    const sigPattern = /\n\s*(sincerely|regards|best regards|warm regards|respectfully|warmly|thank you)\b.*$/is;
-    const cleaned = trimmed.replace(sigPattern, '').trim();
-    if (cleaned) bodyParagraphs.push(cleaned);
-  }
+  const bodyParagraphs = extractCoverLetterBodyParagraphs(coverLetterText);
+  const dateStr = letterDate || new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  const signName = (candidateName || 'Joshua Brooks').trim() || 'Joshua Brooks';
 
   const children = [];
 
-  // Template: date
+  // Template: single date (must match prompt / generation context when provided)
   children.push(
     new Paragraph({
       children: [new TextRun({
-        text: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
+        text: dateStr,
         font: FONT,
         size: FONT_SIZE_BODY,
-        color: COLOR_SUBTEXT
+        color: ATS_BLACK
       })],
       spacing: { after: 200 }
     })
@@ -396,42 +373,42 @@ async function generateCoverLetterDOCX(coverLetterText, keywords, jobTitle, comp
         text: 'Dear Hiring Manager,',
         font: FONT,
         size: FONT_SIZE_BODY,
-        color: COLOR_TEXT
+        color: ATS_BLACK
       })],
       spacing: { after: 200 }
     })
   );
 
-  // Body paragraphs (cleaned)
+  // Body: plain black text, max 3 paragraphs (enforced in extractCoverLetterBodyParagraphs)
   for (const para of bodyParagraphs) {
     children.push(
       new Paragraph({
-        children: createHighlightedRuns(para.trim(), keywords),
+        children: createPlainRuns(para.trim()),
         spacing: { after: 200 },
         alignment: AlignmentType.LEFT
       })
     );
   }
 
-  // Template: single closing
+  // Closing: "Sincerely," on one line, name on the next (standard business letter format)
   children.push(
     new Paragraph({
       children: [new TextRun({
         text: 'Sincerely,',
         font: FONT,
         size: FONT_SIZE_BODY,
-        color: COLOR_TEXT
+        color: ATS_BLACK
       })],
-      spacing: { before: 200, after: 80 }
+      spacing: { before: 240, after: 0 }
     }),
     new Paragraph({
       children: [new TextRun({
-        text: candidateName || 'Joshua Brooks',
+        text: signName,
         font: FONT,
         size: FONT_SIZE_BODY,
-        color: COLOR_TEXT
+        color: ATS_BLACK
       })],
-      spacing: { after: 80 }
+      spacing: { before: 0, after: 80 }
     })
   );
 

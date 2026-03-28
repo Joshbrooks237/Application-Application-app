@@ -3,9 +3,7 @@ const fs = require('fs');
 
 const FONT_REGULAR = 'Helvetica';
 const FONT_BOLD = 'Helvetica-Bold';
-const COLOR_PRIMARY = '#2557A7';
-const COLOR_TEXT = '#1F2937';
-const COLOR_SUBTEXT = '#6B7280';
+const ATS_BLACK = '#000000';
 
 const MARGIN = 50;
 const PAGE_WIDTH = 612;
@@ -36,73 +34,21 @@ function extractContactInfo(resumeText) {
   return { name, contactLine };
 }
 
-/**
- * Write text with keyword segments bolded inline.
- * pdfkit doesn't have a native "highlight runs" API, so we
- * manually measure and place each segment on the same line(s).
- */
-function writeTextWithKeywords(doc, text, keywords, opts = {}) {
+/** Plain black resume body text (no keyword color — ATS / print). */
+function writePlainResumeText(doc, text, opts = {}) {
   const fontSize = opts.fontSize || 10;
-  const color = opts.color || COLOR_TEXT;
   const indent = opts.indent || 0;
-
-  if (!keywords || keywords.length === 0) {
-    doc.font(FONT_REGULAR).fontSize(fontSize).fillColor(color);
-    doc.text(text, MARGIN + indent, undefined, { width: CONTENT_WIDTH - indent, continued: false });
-    return;
-  }
-
-  const sortedKw = [...keywords].sort((a, b) => b.length - a.length);
-  const segments = [];
-  let remaining = text;
-
-  while (remaining.length > 0) {
-    let earliestIdx = remaining.length;
-    let matched = null;
-
-    for (const kw of sortedKw) {
-      const idx = remaining.toLowerCase().indexOf(kw.toLowerCase());
-      if (idx !== -1 && idx < earliestIdx) {
-        earliestIdx = idx;
-        matched = kw;
-      }
-    }
-
-    if (!matched) {
-      segments.push({ text: remaining, bold: false });
-      break;
-    }
-
-    if (earliestIdx > 0) {
-      segments.push({ text: remaining.substring(0, earliestIdx), bold: false });
-    }
-    segments.push({ text: remaining.substring(earliestIdx, earliestIdx + matched.length), bold: true });
-    remaining = remaining.substring(earliestIdx + matched.length);
-  }
-
-  const x = MARGIN + indent;
-  for (let i = 0; i < segments.length; i++) {
-    const seg = segments[i];
-    const isLast = i === segments.length - 1;
-    doc.font(seg.bold ? FONT_BOLD : FONT_REGULAR)
-       .fontSize(fontSize)
-       .fillColor(seg.bold ? COLOR_PRIMARY : color);
-
-    if (i === 0) {
-      doc.text(seg.text, x, undefined, { width: CONTENT_WIDTH - indent, continued: !isLast });
-    } else {
-      doc.text(seg.text, { continued: !isLast });
-    }
-  }
+  doc.font(FONT_REGULAR).fontSize(fontSize).fillColor(ATS_BLACK)
+    .text(text || '', { width: CONTENT_WIDTH - indent, continued: false });
 }
 
 function drawSectionLine(doc) {
   const y = doc.y;
-  doc.moveTo(MARGIN, y).lineTo(PAGE_WIDTH - MARGIN, y).strokeColor(COLOR_PRIMARY).lineWidth(0.5).stroke();
+  doc.moveTo(MARGIN, y).lineTo(PAGE_WIDTH - MARGIN, y).strokeColor(ATS_BLACK).lineWidth(0.5).stroke();
   doc.y = y + 4;
 }
 
-async function generateResumePDF(rewrittenResume, keywords, outputPath, masterResumeText) {
+async function generateResumePDF(rewrittenResume, _keywords, outputPath, masterResumeText) {
   console.log('[PDF] Generating resume document...');
 
   const { name, contactLine } = extractContactInfo(masterResumeText);
@@ -117,31 +63,31 @@ async function generateResumePDF(rewrittenResume, keywords, outputPath, masterRe
 
   // ── Name Header ──
   if (name) {
-    doc.font(FONT_BOLD).fontSize(18).fillColor(COLOR_TEXT)
+    doc.font(FONT_BOLD).fontSize(18).fillColor(ATS_BLACK)
        .text(name, MARGIN, MARGIN, { width: CONTENT_WIDTH, align: 'center' });
     doc.moveDown(0.2);
   }
 
   if (contactLine) {
-    doc.font(FONT_REGULAR).fontSize(9).fillColor(COLOR_SUBTEXT)
+    doc.font(FONT_REGULAR).fontSize(9).fillColor(ATS_BLACK)
        .text(contactLine, MARGIN, undefined, { width: CONTENT_WIDTH, align: 'center' });
     doc.moveDown(0.8);
   }
 
   // ── Professional Summary ──
-  doc.font(FONT_BOLD).fontSize(11).fillColor(COLOR_PRIMARY)
+  doc.font(FONT_BOLD).fontSize(11).fillColor(ATS_BLACK)
      .text('PROFESSIONAL SUMMARY', MARGIN, undefined, { width: CONTENT_WIDTH });
   drawSectionLine(doc);
   doc.moveDown(0.2);
 
-  writeTextWithKeywords(doc, rewrittenResume.summary || '', keywords, { fontSize: 10 });
+  writePlainResumeText(doc, rewrittenResume.summary || '', { fontSize: 10 });
   doc.moveDown(0.6);
 
   // ── Skills ──
   const skillsList = rewrittenResume.skills || [];
   if (skillsList.length > 0) {
-    doc.font(FONT_BOLD).fontSize(11).fillColor(COLOR_PRIMARY)
-       .text('SKILLS', MARGIN, undefined, { width: CONTENT_WIDTH });
+    doc.font(FONT_BOLD).fontSize(11).fillColor(ATS_BLACK)
+       .text('CORE COMPETENCIES', MARGIN, undefined, { width: CONTENT_WIDTH });
     drawSectionLine(doc);
     doc.moveDown(0.2);
 
@@ -150,7 +96,7 @@ async function generateResumePDF(rewrittenResume, keywords, outputPath, masterRe
       skillChunks.push(skillsList.slice(i, i + 4).join('  •  '));
     }
     for (const chunk of skillChunks) {
-      writeTextWithKeywords(doc, chunk, keywords, { fontSize: 10 });
+      writePlainResumeText(doc, chunk, { fontSize: 10 });
     }
     doc.moveDown(0.6);
   }
@@ -158,7 +104,7 @@ async function generateResumePDF(rewrittenResume, keywords, outputPath, masterRe
   // ── Professional Experience ──
   const experience = rewrittenResume.experience || [];
   if (experience.length > 0) {
-    doc.font(FONT_BOLD).fontSize(11).fillColor(COLOR_PRIMARY)
+    doc.font(FONT_BOLD).fontSize(11).fillColor(ATS_BLACK)
        .text('PROFESSIONAL EXPERIENCE', MARGIN, undefined, { width: CONTENT_WIDTH });
     drawSectionLine(doc);
     doc.moveDown(0.2);
@@ -168,17 +114,17 @@ async function generateResumePDF(rewrittenResume, keywords, outputPath, masterRe
       const company = role.company || '';
       const dates = role.dates || '';
 
-      doc.font(FONT_BOLD).fontSize(10).fillColor(COLOR_TEXT)
+      doc.font(FONT_BOLD).fontSize(10).fillColor(ATS_BLACK)
          .text(roleTitle, MARGIN, undefined, { continued: true });
-      doc.font(FONT_REGULAR).fontSize(10).fillColor(COLOR_SUBTEXT)
+      doc.font(FONT_REGULAR).fontSize(10).fillColor(ATS_BLACK)
          .text(`  |  ${company}${dates ? '  |  ' + dates : ''}`, { continued: false });
       doc.moveDown(0.15);
 
       const bullets = role.bullets || [];
       for (const bullet of bullets) {
-        doc.font(FONT_REGULAR).fontSize(10).fillColor(COLOR_SUBTEXT)
+        doc.font(FONT_REGULAR).fontSize(10).fillColor(ATS_BLACK)
            .text('•  ', MARGIN + 15, undefined, { continued: true });
-        writeTextWithKeywords(doc, bullet, keywords, { fontSize: 10, indent: 15 });
+        writePlainResumeText(doc, bullet, { fontSize: 10, indent: 15 });
         doc.moveDown(0.05);
       }
       doc.moveDown(0.3);
@@ -188,7 +134,7 @@ async function generateResumePDF(rewrittenResume, keywords, outputPath, masterRe
   // ── Additional Management Experience ──
   const additionalExp = rewrittenResume.additionalExperience || [];
   if (additionalExp.length > 0) {
-    doc.font(FONT_BOLD).fontSize(11).fillColor(COLOR_PRIMARY)
+    doc.font(FONT_BOLD).fontSize(11).fillColor(ATS_BLACK)
        .text('ADDITIONAL MANAGEMENT EXPERIENCE', MARGIN, undefined, { width: CONTENT_WIDTH });
     drawSectionLine(doc);
     doc.moveDown(0.2);
@@ -198,17 +144,17 @@ async function generateResumePDF(rewrittenResume, keywords, outputPath, masterRe
       const company = role.company || '';
       const dates = role.dates || '';
 
-      doc.font(FONT_BOLD).fontSize(10).fillColor(COLOR_TEXT)
+      doc.font(FONT_BOLD).fontSize(10).fillColor(ATS_BLACK)
          .text(roleTitle, MARGIN, undefined, { continued: true });
-      doc.font(FONT_REGULAR).fontSize(10).fillColor(COLOR_SUBTEXT)
+      doc.font(FONT_REGULAR).fontSize(10).fillColor(ATS_BLACK)
          .text(`  |  ${company}${dates ? '  |  ' + dates : ''}`, { continued: false });
       doc.moveDown(0.15);
 
       const bullets = role.bullets || [];
       for (const bullet of bullets) {
-        doc.font(FONT_REGULAR).fontSize(10).fillColor(COLOR_SUBTEXT)
+        doc.font(FONT_REGULAR).fontSize(10).fillColor(ATS_BLACK)
            .text('•  ', MARGIN + 15, undefined, { continued: true });
-        writeTextWithKeywords(doc, bullet, keywords, { fontSize: 10, indent: 15 });
+        writePlainResumeText(doc, bullet, { fontSize: 10, indent: 15 });
         doc.moveDown(0.05);
       }
       doc.moveDown(0.3);
