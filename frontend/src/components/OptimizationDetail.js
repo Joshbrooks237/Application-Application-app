@@ -1,32 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { getOptimizationDetail, regenerateCoverLetter, getDownloadUrl, refineWithFeedback, reOptimize } from '../api';
 import KeywordPanel from './KeywordPanel';
+import HighlightedText from './HighlightedText';
 
 const TONES = [
   'Professional', 'Confident', 'Conversational', 'Casual', 'Funny',
   'Fun', 'Storyteller', 'Bold', 'Warm', 'Direct', 'Enthusiastic',
 ];
-
-function HighlightedText({ text, keywords }) {
-  if (!text || !keywords?.length) return <span>{text}</span>;
-
-  const sorted = [...keywords].sort((a, b) => b.length - a.length);
-  const regex = new RegExp(`(${sorted.map(k => k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})`, 'gi');
-  const parts = text.split(regex);
-
-  return (
-    <>
-      {parts.map((part, i) => {
-        const isKw = sorted.some(k => k.toLowerCase() === part.toLowerCase());
-        return isKw ? (
-          <mark key={i} className="bg-keyword-highlight text-slate-900 px-0.5 rounded-sm font-semibold">{part}</mark>
-        ) : (
-          <span key={i}>{part}</span>
-        );
-      })}
-    </>
-  );
-}
 
 export default function OptimizationDetail({ optimizationId, onBack }) {
   const [data, setData] = useState(null);
@@ -152,8 +132,6 @@ export default function OptimizationDetail({ optimizationId, onBack }) {
 
   if (!data) return null;
 
-  const keywordStrings = (data.keywords || []).map(k => k.keyword);
-
   return (
     <div className="animate-fadeInUp space-y-6">
       {/* Header */}
@@ -259,15 +237,17 @@ export default function OptimizationDetail({ optimizationId, onBack }) {
           </div>
 
           {/* Tailored */}
-          <div className="bg-surface-raised border border-primary/30 rounded-xl overflow-hidden">
-            <div className="px-5 py-3 border-b border-primary/30 bg-primary/5">
-              <h3 className="text-sm font-bold text-primary-light">Tailored Resume</h3>
+          <div className="bg-surface-raised border border-surface-overlay rounded-xl overflow-hidden">
+            <div className="px-5 py-3 border-b border-surface-overlay bg-surface-overlay/30">
+              <h3 className="text-sm font-bold text-slate-300">Tailored Resume</h3>
             </div>
             <div className="p-5 text-sm text-slate-300 leading-relaxed max-h-[600px] overflow-y-auto space-y-4">
               {data.rewrittenResume?.summary && (
                 <div>
                   <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Summary</h4>
-                  <p><HighlightedText text={data.rewrittenResume.summary} keywords={keywordStrings} /></p>
+                  <p className="text-slate-300">
+                    <HighlightedText text={data.rewrittenResume.summary} keywordDetails={data.keywordDetails} />
+                  </p>
                 </div>
               )}
 
@@ -276,8 +256,8 @@ export default function OptimizationDetail({ optimizationId, onBack }) {
                   <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Skills</h4>
                   <div className="flex flex-wrap gap-1.5">
                     {data.rewrittenResume.skills.map((skill, i) => (
-                      <span key={i} className="px-2.5 py-1 text-xs rounded-full bg-surface-overlay text-slate-300 border border-surface-overlay">
-                        <HighlightedText text={skill} keywords={keywordStrings} />
+                      <span key={i} className="px-2.5 py-1 text-xs rounded-full bg-surface-overlay text-slate-300 border border-surface-overlay inline-flex items-center">
+                        <HighlightedText text={skill} keywordDetails={data.keywordDetails} className="whitespace-normal" />
                       </span>
                     ))}
                   </div>
@@ -290,9 +270,11 @@ export default function OptimizationDetail({ optimizationId, onBack }) {
                   <p className="text-xs text-slate-500 mb-2">{role.company}</p>
                   <ul className="space-y-1.5">
                     {role.bullets?.map((bullet, j) => (
-                      <li key={j} className="flex gap-2 text-sm">
-                        <span className="text-primary-light mt-0.5 shrink-0">•</span>
-                        <span><HighlightedText text={bullet} keywords={keywordStrings} /></span>
+                      <li key={j} className="flex gap-2 text-sm text-slate-300">
+                        <span className="text-slate-500 mt-0.5 shrink-0">•</span>
+                        <span>
+                          <HighlightedText text={bullet} keywordDetails={data.keywordDetails} />
+                        </span>
                       </li>
                     ))}
                   </ul>
@@ -310,9 +292,11 @@ export default function OptimizationDetail({ optimizationId, onBack }) {
                       <p className="text-xs text-slate-500 mb-2">{role.company}</p>
                       <ul className="space-y-1.5">
                         {role.bullets?.map((bullet, j) => (
-                          <li key={j} className="flex gap-2 text-sm">
-                            <span className="text-primary-light mt-0.5 shrink-0">•</span>
-                            <span><HighlightedText text={bullet} keywords={keywordStrings} /></span>
+                          <li key={j} className="flex gap-2 text-sm text-slate-300">
+                            <span className="text-slate-500 mt-0.5 shrink-0">•</span>
+                            <span>
+                              <HighlightedText text={bullet} keywordDetails={data.keywordDetails} />
+                            </span>
                           </li>
                         ))}
                       </ul>
@@ -390,7 +374,7 @@ export default function OptimizationDetail({ optimizationId, onBack }) {
               <h3 className="text-sm font-bold text-slate-300">Tailored Cover Letter</h3>
             </div>
             <div className="p-6 text-sm text-slate-300 leading-relaxed whitespace-pre-wrap">
-              <HighlightedText text={data.coverLetterText} keywords={keywordStrings} />
+              <HighlightedText text={data.coverLetterText} keywordDetails={data.keywordDetails} />
             </div>
             <div className="px-5 py-4 border-t border-surface-overlay bg-surface/50">
               <label className="block text-xs font-semibold text-accent mb-1.5">Refine with Feedback</label>

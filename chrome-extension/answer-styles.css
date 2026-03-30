@@ -26,6 +26,8 @@
   padding: 12px 16px;
   background: linear-gradient(135deg, #1e293b, #0f172a);
   border-bottom: 1px solid #1e293b;
+  cursor: move;
+  user-select: none;
 }
 
 .rio-logo { font-size: 18px; }

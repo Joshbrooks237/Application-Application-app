@@ -428,7 +428,37 @@ Return ONLY valid JSON, no markdown, no explanation.
 Expected format:
 {"keywords": [{"keyword": "...", "category": "technical_skill|soft_skill|qualification|industry_term", "importance": 1-10, "type": "keyword|phrase"}]}`,
 
-  resumeRewrite: `You are an expert resume writer and ATS optimization specialist. You will be given a candidate's master resume and a list of ATS keywords AND multi-word phrases from a job posting. Your job is to rewrite the resume to best match the target role.
+  resumeRewrite: `You are an expert resume strategist.
+
+###############################################################
+# KEYWORD REQUIREMENTS — YOU WILL BE SCORED ON THIS           #
+###############################################################
+Your output will be automatically scored against the provided keyword list.
+- You MUST achieve a **70-77% keyword match rate**
+- You MUST include **AT LEAST 11 of the 15 provided keywords**
+- If your score is below 70%, you have FAILED
+
+WHERE TO PUT KEYWORDS:
+1. SKILLS SECTION: List 8-12 relevant skills using exact keywords from the list
+2. SUMMARY: Include 3-4 keywords naturally in 2-3 sentences  
+3. BULLET POINTS: Each role should contain 2-3 keywords woven into achievements
+
+KEYWORD INTEGRATION CHECKLIST (do this before outputting):
+□ Count how many keywords you used — is it at least 11?
+□ Check the skills section — does it contain keywords from the list?
+□ Check the summary — does it contain keywords?
+□ Check each role's bullets — do they contain keywords?
+
+If you cannot hit 11+ keywords, you are not trying hard enough. Every keyword CAN fit somewhere if you write creatively.
+###############################################################
+
+PROSE QUALITY — ALSO REQUIRED:
+- Sound like a real person, not a corporate drone
+- Vary sentence rhythm — short punchy lines mixed with longer ones
+- Show personality: dry humor, wry observations, unexpected turns of phrase
+- NO banned words: leveraged, utilized, spearheaded, facilitated, synergy, dynamic, robust, results-driven
+
+The goal is BOTH: 70%+ keyword match AND excellent human prose.
 
 CRITICAL RULES — EVERY ROLE MUST BE INCLUDED:
 - The master resume contains MANY different job roles. You MUST include ALL of them in your output. NEVER drop a role.
@@ -445,23 +475,11 @@ Split into TWO groups:
 LENGTH — NO ARTIFICIAL CAP:
 - Use **as much space as the content needs**. Do **not** shorten, compress, or strip substance to hit a word count. If you must choose between filler and a **real metric**, keep the metric.
 
-WARMTH & HUMAN VOICE (STILL REQUIRED):
-- This resume is ATS-friendly and plain — but it must NOT read cold, robotic, or like a keyword stack. A real person should sound like someone you'd want on the team: grounded, positive, approachable.
-- Summary: Write like a human who is proud of their work and clear about what they bring — warm confidence, not corporate drone. One or two sentences can show care for people, quality, or service where that's true to the master resume.
-- Bullets: Use strong plain verbs. Where it fits the facts, show the human side — building trust, helping customers through a rough day, keeping things running so others don't have to worry. Avoid sterile openings like "Responsible for" or "Utilized" when a direct human verb works better.
-- Do NOT add fake enthusiasm, exclamation points, or cheesy adjectives ("passionate," "rockstar," "guru"). Real warmth is specific: what they actually did for people or outcomes.
-- Keywords still belong — woven in so they sound like something a person would naturally say, not a list stapled to the page.
-
-PLAIN HUMAN VOICE (REQUIRED):
-- Write like a real person talking about their work, not a corporate document. Avoid buzzwords like 'leveraged,' 'utilized,' 'spearheaded,' 'dynamic,' and 'synergy.' Use plain direct language. Short sentences over long ones. Real words over impressive ones.
-
-REWRITING RULES:
-- Naturally incorporate as many keywords and exact multi-word phrases as possible without keyword stuffing.
-- Pay special attention to including EXACT multi-word phrases (marked as "phrase") since ATS systems scan for complete phrases.
+ADDITIONAL RULES:
+- Start bullets with strong plain verbs — managed, delivered, built, resolved, coordinated, maintained, handled, ran, kept.
+- Keep quantifiable achievements where they exist. Real numbers beat keyword stuffing.
 - Keep all facts true — do not invent experience or skills.
-- Preserve the candidate's voice.
-- Rewrite: summary, skills list, and bullets per role as above — each bullet should be tight and readable, but **long enough to carry real facts** (no trimming for length alone).
-- NEVER mention "Indeeeed Optimizer", "Indeeeed", "Rio Brave", "Rio Brave LLC", or any personal AI tool/app/software the candidate built UNLESS the target job is explicitly in software development, AI, tech, or engineering. For all other roles (customer service, leasing, sales, medical, property management, brand ambassador, administrative, etc.) — REMOVE Rio Brave and any personal app/tool from the experience section entirely. Do not include it in experience, additionalExperience, skills, or summary.
+- NEVER mention "Indeeeed Optimizer", "Indeeeed", "Rio Brave", "Rio Brave LLC", or any personal AI tool/app/software the candidate built UNLESS the target job is explicitly in software development, AI, tech, or engineering.
 - NEVER invent metrics or scenarios. Each metric belongs to ONE role only — never mix them:
   • 731 units, 5.0 Google rating, 261 reviews → A-AAAKey Mini Storage ONLY
   • 98% on-time delivery rate → Green Cuisine medical delivery ONLY
@@ -485,10 +503,18 @@ DATES — REQUIRED FOR EVERY ROLE:
 - If the master resume shows approximate dates (like "~2018"), keep the approximation.
 - NEVER omit dates. Recruiters flag dateless resumes.
 
-Return ONLY valid JSON with keys: summary, skills, experience, additionalExperience.
+EDUCATION — REQUIRED WHEN PRESENT IN MASTER RESUME:
+- If the master resume contains an education section, you MUST include it in your output in a new "education" array.
+- NEVER omit education. If the candidate has a Bachelor's degree or higher, it is a key qualifier and must appear on every resume.
+- For candidates with international education (study abroad, exchange programs, dual degrees), ALWAYS include both institutions. Example: Bachelor's degree from San Diego State University AND exchange program at KEDGE Business School, France — both are differentiators.
+- Placement: For professional roles with 5+ years experience, place education after additionalExperience. For entry-level roles or roles where the degree is a primary qualifier (teaching, research, international business), place education near the top in the JSON (it will render prominently).
+- Format each entry as: {"degree": "Bachelor of Arts in Communication", "institution": "San Diego State University", "location": "San Diego, CA", "dates": "Aug 2011 — Aug 2014"}
+- For exchange programs or study abroad, create a separate entry: {"degree": "Exchange Program — Business Studies", "institution": "KEDGE Business School", "location": "Marseille, France", "dates": "Sep 2013 — May 2014"}
+
+Return ONLY valid JSON with keys: summary, skills, experience, additionalExperience, education (if present in master resume).
 
 Expected format:
-{"summary": "...", "skills": ["skill1", "skill2", ...], "experience": [{"role": "...", "company": "...", "dates": "2022 — Aug 2025", "bullets": ["...", "...", "..."]}], "additionalExperience": [{"role": "...", "company": "...", "dates": "2018 — 2022", "bullets": ["...", "..."]}]}`,
+{"summary": "...", "skills": ["skill1", "skill2", ...], "experience": [{"role": "...", "company": "...", "dates": "2022 — Aug 2025", "bullets": ["...", "...", "..."]}], "additionalExperience": [{"role": "...", "company": "...", "dates": "2018 — 2022", "bullets": ["...", "..."]}], "education": [{"degree": "Bachelor of Arts in Communication", "institution": "San Diego State University", "location": "San Diego, CA", "dates": "Aug 2011 — Aug 2014"}]}`,
 
   coverLetter: `You are writing a cover letter for a real person. Not a template. Not a keyword dump. A letter from someone with a life, with bills, with gratitude for what they've built and quiet confidence in what they can do next. Tone: [TONE_SELECTION].
 
@@ -547,12 +573,13 @@ LENGTH & STRUCTURE (NON-NEGOTIABLE):
 - **150–200 words total** for the body only. Count every word; stay inside this range.
 - Do not repeat the same paragraph, hook, or closing twice. No duplicate sections.
 
-VOICE — WARM, ENDEARING, HUMAN:
-- Sound like a **thoughtful, kind professional** who is **quietly proud** of real work done well — never boastful, never desperate.
-- **Subtle personality:** a light touch of dry humor, a small wise observation, or a human moment — never a joke that could flop, never try-hard wit.
-- **Genuinely human:** contractions OK; plain words; the reader should feel they met someone real.
-- **Show warmth through specifics:** Instead of saying "I'm passionate about customer service," say "I like the moment when someone walks in frustrated and leaves smiling." Instead of "I value teamwork," say "The best days at work were the ones where everyone knew what to do without being told."
-- **One small vulnerable truth:** A brief honest moment that makes them human — "I've swept floors at 2am and opened the office at 8am the next morning," or "The 5.0 rating didn't happen by accident — it happened because I showed up every day even when I didn't want to."
+VOICE — WARM, WITTY, UNFORGETTABLE:
+- Sound like a **thoughtful professional with a quiet spark** — someone who notices things, thinks about their work, and has a point of view.
+- **Prose that breathes:** Vary your rhythm. Short sentence. Then a longer one that unfolds a bit. Let the reader feel the cadence.
+- **Wit, not jokes:** A wry observation. A turn of phrase that lands. "I've managed 731 storage units and 731 different definitions of 'I'll pay you next week.'" Not ha-ha funny — smile-and-keep-reading funny.
+- **Specificity is charm:** "I like the moment when someone walks in frustrated and leaves smiling" beats "I'm passionate about customer service." Show, don't tell.
+- **One vulnerable truth:** A brief honest moment — "I've swept floors at 2am and opened the office at 8am the next morning," or "The 5.0 rating didn't happen by accident — it happened because I showed up every day even when I didn't want to."
+- **Write like someone who reads books, not LinkedIn posts.** Every sentence should feel considered. If it sounds like a template, kill it.
 
 CONTENT:
 - One strong achievement with a real number from the resume (not a resume dump).
@@ -562,12 +589,12 @@ CONTENT:
 
 Do NOT use only "Thank you for your consideration" as the ending. Do NOT add "Sincerely" or a name after that line — the template adds the signature once.
 
-WHAT MAKES A LETTER ENDEARING:
-- **Specificity over generality:** "I managed 731 units" beats "I have extensive experience."
-- **Honest bridges:** "While my property management background is in storage facilities, the core skills transfer directly" beats pretending you have apartment experience.
-- **Small human moments:** "The best part of the job was helping someone who'd been turned away everywhere else" beats "I am passionate about helping people."
-- **Quiet confidence:** "I've done this work. I can do it here." beats "I am confident I would be a great fit."
-- **A closing line they remember:** Something true about how you work or what you believe. "Good work is just showing up when it's hard and doing it anyway." "The best customer service is just figuring out what someone needs before they have to ask twice." Make it sound like something this person would actually say.
+WHAT MAKES A LETTER UNFORGETTABLE:
+- **Specificity is everything:** "I managed 731 units in a neighborhood where the police knew me by name" beats "I have extensive experience."
+- **Honest bridges with charm:** "My property management background is in storage, not apartments — but tenants are tenants, and the ones who don't pay their rent all have the same look on their face."
+- **Small human moments that land:** "The best part of the job was watching someone drive away with their stuff after I helped them through a rough month" beats "I am passionate about helping people."
+- **Quiet confidence, not performance:** "I've done this work. I can do it here." One sentence. No elaboration needed.
+- **A closing line they'll remember tomorrow:** Something true about how you work or what you believe. "Good work is just showing up when it's hard and doing it anyway." "The best customer service is figuring out what someone needs before they ask twice." "I've learned that most problems solve themselves if you just stay calm and stay present." Make it sound like hard-won wisdom, not a motivational poster.
 
 ABSOLUTE TRUTH RULES — EVERY WORD MUST BE DEFENSIBLE IN AN INTERVIEW:
 - NEVER invent a scenario, story, or hypothetical example. Do NOT write "for instance" or "for example" followed by a made-up situation. If you need an example, use ONLY real ones from the resume.
@@ -661,8 +688,19 @@ function buildResumeUserContent(resumeText, keywords, voiceText) {
   if (voiceText) {
     content += `\n\n---\nVOICE PROFILE — This captures the candidate's communication style, real stories, and what makes them memorable. Use this to make the resume sound genuinely like this person:\n${voiceText}`;
   }
-  content += `\n\n---\nLENGTH: No target word count — use as much space as needed for every role and every important fact. Order: management/lead roles first (by relevance), then other roles by relevance.\nVOICE: Warm, human, and readable — not robotic or keyword-stuffed.\n`;
-  content += `\n---\nATS Keywords:\n${keywordList}\n\n---\nATS Phrases (use these EXACT multi-word phrases):\n${phraseList}`;
+  content += `\n\n---\nLENGTH: No target word count — use as much space as needed for every role and every important fact.\nORDER: Management/lead roles first (by relevance), then other roles by relevance.\n`;
+  content += `\n---\n###############################################################
+# SCORE TARGET: 70-77% — USE AT LEAST 11 OF THESE 15 KEYWORDS #
+###############################################################
+
+KEYWORDS TO USE (you will be scored on how many appear in your output):
+${keywordList}
+
+PHRASES TO USE (exact multi-word matches):
+${phraseList}
+
+REMINDER: Put keywords in SKILLS, SUMMARY, and BULLET POINTS. Count them before submitting — you need 11+.
+###############################################################`;
   return content;
 }
 
@@ -1298,21 +1336,22 @@ app.post('/optimize', async (req, res) => {
   console.log(`[Server] Description length: ${fullDescription.length} chars`);
   console.log(`[Server] Tone: ${selectedTone}`);
 
-  const MATCH_THRESHOLD = 75;
-  const MAX_RETRIES = 3;
+  const MATCH_THRESHOLD = 75; // Target 75-77% — aiming for 77
+  const MATCH_CEILING = 77;   // STOP HERE — the sweet spot
+  const MAX_RETRIES = 3;      // Keep trying until we hit 77
 
   const retryStrategies = [
     {
-      name: 'Emphasize different keywords',
-      instruction: `RETRY STRATEGY: The previous attempt scored below ${MATCH_THRESHOLD}%. This time, focus HEAVILY on the highest-importance keywords and phrases that were MISSED. Prioritize exact phrase matches above all else. Rephrase bullet points specifically to include the top-importance keywords even if it means restructuring sentences. Be more aggressive with keyword incorporation while keeping facts truthful.`
+      name: 'Skills section keyword boost',
+      instruction: `IMPORTANT: Keep the EXACT resume you just wrote, but ADD more keywords to the SKILLS section only. List 12-15 skills using exact terms from the keyword list. Do NOT rewrite the bullets or summary — just expand the skills.`
     },
     {
-      name: 'Adjust summary angle',
-      instruction: `RETRY STRATEGY: Previous attempts scored below ${MATCH_THRESHOLD}%. This time, completely rewrite the summary from a different angle — lead with the skills and qualifications most central to the job posting. Restructure experience bullets to front-load the exact terminology from the job description. Use the job posting's own language and phrasing wherever possible.`
+      name: 'Add keywords to existing bullets',
+      instruction: `IMPORTANT: Keep the EXACT structure and content, but find 4-5 bullets where you can swap in a keyword synonym. Example: if "customer service" is a keyword and you wrote "helped guests", change it to "provided customer service to guests". Minimal changes, maximum keyword hits.`
     },
     {
-      name: 'Conversational tone with dense keywords',
-      instruction: `RETRY STRATEGY: Previous attempts scored below ${MATCH_THRESHOLD}%. This time, use a slightly more conversational, natural tone that allows you to weave in MORE keywords organically. Write longer, richer bullet points that incorporate multiple keywords per bullet. Expand the skills list to include all relevant variations. Aim for maximum keyword density while maintaining readability.`
+      name: 'Summary keyword push',
+      instruction: `IMPORTANT: Keep the bullets as-is, but rewrite the SUMMARY to pack in 5-6 keywords naturally. Also check the skills list — can you add 2-3 more? We need to hit 77%.`
     }
   ];
 
@@ -1361,21 +1400,33 @@ app.post('/optimize', async (req, res) => {
 
       // Score it
       const scoring = calculateMatchScore(masterResume.text, keywords, rewrittenResume);
-      console.log(`[Server] Attempt ${attempt + 1} score: ${scoring.matchScore}% (best so far: ${bestScore}%)`);
+      console.log(`[Server] Attempt ${attempt + 1} score: ${scoring.matchScore}% (target: ${MATCH_THRESHOLD}-${MATCH_CEILING}%)`);
       attemptsMade = attempt + 1;
 
-      if (scoring.matchScore > bestScore) {
+      // Check if score is in the sweet spot (65-75%) — STOP HERE, this is ideal
+      const inSweetSpot = scoring.matchScore >= MATCH_THRESHOLD && scoring.matchScore <= MATCH_CEILING;
+      const overOptimized = scoring.matchScore > MATCH_CEILING;
+
+      if (overOptimized) {
+        console.log(`[Server] ⚠️ Score ${scoring.matchScore}% is OVER-OPTIMIZED (>${MATCH_CEILING}%). Keeping but not ideal.`);
+      }
+
+      // Accept this result if: it's in the sweet spot, OR it's better than what we have
+      // But prefer sweet spot scores over higher scores
+      const shouldAccept = !bestResult || 
+        (inSweetSpot && bestScore > MATCH_CEILING) || // Sweet spot beats over-optimized
+        (inSweetSpot && !bestResult) ||
+        (scoring.matchScore > bestScore && bestScore < MATCH_THRESHOLD); // Only chase higher if below threshold
+
+      if (shouldAccept || scoring.matchScore > bestScore) {
         bestScore = scoring.matchScore;
 
-        // Generate cover letter for this best version
-        const useTone = (attempt === MAX_RETRIES && scoring.matchScore < MATCH_THRESHOLD)
-          ? 'Conversational' : selectedTone;
-
+        // Generate cover letter for this version
         const { text: coverLetterText, letterDate } = await generateCoverLetter(
           fullDescription,
           rewrittenResume.summary,
           keywords,
-          useTone,
+          selectedTone,
           {
             candidateName: extractCandidateName(masterResume.text),
             companyName: companyName || 'the company',
@@ -1388,8 +1439,15 @@ app.post('/optimize', async (req, res) => {
         bestResult = { rewrittenResume, coverLetterText, letterDate, scoring };
       }
 
-      if (scoring.matchScore >= MATCH_THRESHOLD) {
-        console.log(`[Server] Score ${scoring.matchScore}% meets ${MATCH_THRESHOLD}% threshold on attempt ${attempt + 1}`);
+      // STOP if we're in the sweet spot — don't try to go higher
+      if (inSweetSpot) {
+        console.log(`[Server] ✅ Score ${scoring.matchScore}% is in sweet spot (${MATCH_THRESHOLD}-${MATCH_CEILING}%). Perfect!`);
+        break;
+      }
+
+      // Also stop if we're already over-optimized — retrying will only make it worse
+      if (overOptimized) {
+        console.log(`[Server] Stopping — already over threshold, more attempts would over-optimize.`);
         break;
       }
     }
@@ -1496,7 +1554,7 @@ app.post('/re-optimize/:id', async (req, res) => {
   const masterResume = getActiveProfile();
   if (!masterResume) return res.status(400).json({ error: 'No active profile' });
 
-  const MATCH_THRESHOLD = 75;
+  const MATCH_THRESHOLD = 65;
   const shakeStrategies = [
     {
       name: 'Aggressive keyword weaving',
@@ -1540,10 +1598,13 @@ app.post('/re-optimize/:id', async (req, res) => {
       }
 
       const scoring = calculateMatchScore(masterResume.text, keywords, rewrittenResume);
-      console.log(`[Server] Shake ${attempt + 1} score: ${scoring.matchScore}% (best: ${bestScore}%)`);
+      const MATCH_CEILING = 77;
+      const inSweetSpot = scoring.matchScore >= MATCH_THRESHOLD && scoring.matchScore <= MATCH_CEILING;
+      console.log(`[Server] Shake ${attempt + 1} score: ${scoring.matchScore}% (target: ${MATCH_THRESHOLD}-${MATCH_CEILING}%)`);
       attemptsMade++;
 
-      if (scoring.matchScore > bestScore) {
+      // Only accept if it improves AND doesn't over-optimize
+      if (scoring.matchScore > bestScore && scoring.matchScore <= MATCH_CEILING) {
         bestScore = scoring.matchScore;
 
         const { text: coverLetterText, letterDate } = await generateCoverLetter(
@@ -1563,8 +1624,8 @@ app.post('/re-optimize/:id', async (req, res) => {
         bestResult = { rewrittenResume, coverLetterText, letterDate, scoring };
       }
 
-      if (scoring.matchScore >= MATCH_THRESHOLD) {
-        console.log(`[Server] Shake & Bake hit ${MATCH_THRESHOLD}% threshold!`);
+      if (inSweetSpot) {
+        console.log(`[Server] ✅ Shake & Bake hit sweet spot (${MATCH_THRESHOLD}-${MATCH_CEILING}%)!`);
         break;
       }
     }
@@ -1782,7 +1843,7 @@ app.post('/analyze-text', async (req, res) => {
       const keywords = await extractKeywords(text);
       let bestResult = null;
       let bestScore = -1;
-      const MATCH_THRESHOLD = 75;
+      const MATCH_THRESHOLD = 65;
       const MAX_RETRIES = 2;
 
       for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {

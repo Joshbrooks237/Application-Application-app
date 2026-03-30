@@ -325,6 +325,73 @@ async function generateResumeDOCX(rewrittenResume, keywords, jobTitle, companyNa
     }
   }
 
+  // ── Education Section ──
+  const education = rewrittenResume.education || [];
+  if (education.length > 0) {
+    sections.push(
+      new Paragraph({
+        children: [new TextRun({
+          text: 'EDUCATION',
+          font: FONT,
+          size: FONT_SIZE_HEADING,
+          bold: true,
+          color: ATS_BLACK,
+          allCaps: true
+        })],
+        spacing: { before: 200, after: 80 },
+        border: { bottom: { style: BorderStyle.SINGLE, size: 1, color: ATS_BLACK } }
+      })
+    );
+
+    for (const edu of education) {
+      const degreeChildren = [
+        new TextRun({
+          text: edu.degree || 'Degree',
+          font: FONT,
+          size: FONT_SIZE_BODY,
+          bold: true,
+          color: ATS_BLACK
+        })
+      ];
+      if (edu.institution) {
+        degreeChildren.push(
+          new TextRun({
+            text: `  |  ${edu.institution}`,
+            font: FONT,
+            size: FONT_SIZE_BODY,
+            color: ATS_BLACK
+          })
+        );
+      }
+      if (edu.location) {
+        degreeChildren.push(
+          new TextRun({
+            text: `  |  ${edu.location}`,
+            font: FONT,
+            size: FONT_SIZE_BODY,
+            color: ATS_BLACK
+          })
+        );
+      }
+      if (edu.dates) {
+        degreeChildren.push(
+          new TextRun({
+            text: `  |  ${edu.dates}`,
+            font: FONT,
+            size: FONT_SIZE_BODY,
+            color: ATS_BLACK
+          })
+        );
+      }
+      sections.push(
+        new Paragraph({
+          children: degreeChildren,
+          spacing: { before: 160, after: 40 }
+        })
+      );
+    }
+  }
+
   const doc = new Document({
     sections: [{
       properties: {

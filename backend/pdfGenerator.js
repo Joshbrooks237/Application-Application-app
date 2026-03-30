@@ -161,6 +161,28 @@ async function generateResumePDF(rewrittenResume, _keywords, outputPath, masterR
     }
   }
 
+  // ── Education Section ──
+  const education = rewrittenResume.education || [];
+  if (education.length > 0) {
+    doc.font(FONT_BOLD).fontSize(11).fillColor(ATS_BLACK)
+       .text('EDUCATION', MARGIN, undefined, { width: CONTENT_WIDTH });
+    drawSectionLine(doc);
+    doc.moveDown(0.2);
+
+    for (const edu of education) {
+      const degreeLine = [
+        edu.degree || 'Degree',
+        edu.institution || '',
+        edu.location || '',
+        edu.dates || ''
+      ].filter(Boolean).join('  |  ');
+
+      doc.font(FONT_BOLD).fontSize(10).fillColor(ATS_BLACK)
+         .text(degreeLine, MARGIN, undefined, { width: CONTENT_WIDTH });
+      doc.moveDown(0.3);
+    }
+  }
+
   doc.end();
 
   return new Promise((resolve, reject) => {

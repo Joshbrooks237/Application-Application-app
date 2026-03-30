@@ -10,6 +10,41 @@
   let retryCount = 0;
   const MAX_RETRIES = 3;
 
+  function makeDraggable(element, handle) {
+    if (!element || !handle) return;
+    
+    let isDragging = false;
+    let startX, startY, initialLeft, initialTop;
+
+    handle.addEventListener('mousedown', (e) => {
+      if (e.target.closest('.rio-close')) return;
+      isDragging = true;
+      startX = e.clientX;
+      startY = e.clientY;
+      const rect = element.getBoundingClientRect();
+      initialLeft = rect.left;
+      initialTop = rect.top;
+      element.style.transition = 'none';
+      e.preventDefault();
+    });
+
+    document.addEventListener('mousemove', (e) => {
+      if (!isDragging) return;
+      const dx = e.clientX - startX;
+      const dy = e.clientY - startY;
+      element.style.left = (initialLeft + dx) + 'px';
+      element.style.top = (initialTop + dy) + 'px';
+      element.style.right = 'auto';
+    });
+
+    document.addEventListener('mouseup', () => {
+      if (isDragging) {
+        isDragging = false;
+        element.style.transition = '';
+      }
+    });
+  }
+
   chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     if (msg.type === 'GENERATE_ANSWER') {
       handleAnswerRequest(msg.question);
@@ -194,6 +229,9 @@
     document.body.appendChild(bubble);
     previewBubble = bubble;
 
+    // Make draggable via header
+    makeDraggable(bubble, bubble.querySelector('.rio-header'));
+
     // Close button
     bubble.querySelector('.rio-close').addEventListener('click', removePreview);
 
@@ -375,6 +413,7 @@
     bubble.querySelector('.rio-close').addEventListener('click', removePreview);
     document.body.appendChild(bubble);
     previewBubble = bubble;
+    makeDraggable(bubble, bubble.querySelector('.rio-header'));
   }
 
   async function handleAnswerRequest(question) {
@@ -451,6 +490,7 @@
     bubble.querySelector('.rio-close').addEventListener('click', removePreview);
     document.body.appendChild(bubble);
     previewBubble = bubble;
+    makeDraggable(bubble, bubble.querySelector('.rio-header'));
   }
 
   function showOptimizeResult(result, originalText) {
@@ -520,6 +560,7 @@
 
     document.body.appendChild(bubble);
     previewBubble = bubble;
+    makeDraggable(bubble, bubble.querySelector('.rio-header'));
 
     bubble.querySelector('.rio-close').addEventListener('click', removePreview);
     bubble.querySelector('.rio-btn-close').addEventListener('click', removePreview);
