@@ -4,6 +4,7 @@ import HistoryFeed from './components/HistoryFeed';
 import AnswerLibrary from './components/AnswerLibrary';
 import StatusBar from './components/StatusBar';
 import ErrorBoundary from './components/ErrorBoundary';
+import HeadhunterPanel from './components/HeadhunterPanel';
 import { checkHealth, getProfiles, getHistory, getAnswers } from './api';
 
 const OptimizationDetail = lazy(() => import('./components/OptimizationDetail'));
@@ -146,6 +147,13 @@ function App() {
                   profiles={profiles}
                   activeProfileId={activeProfileId}
                   onProfilesChanged={refreshData}
+                />
+              </ErrorBoundary>
+
+              <ErrorBoundary>
+                <HeadhunterPanel
+                  activeProfile={activeProfile}
+                  onRefresh={refreshData}
                 />
               </ErrorBoundary>
             </div>

@@ -2496,7 +2496,7 @@ function archiveOldAnswers() {
 // ── Claude-Powered Feedback Refinement ──
 
 app.post('/refine-with-feedback', async (req, res) => {
-  const { originalOutput, feedback, type, context } = req.body;
+  const { originalOutput, feedback, type, context, optimizationId } = req.body;
   console.log('[Server] ── Refine with Feedback ──');
   console.log(`[Server] Type: ${type}, Feedback: ${feedback?.substring(0, 100)}`);
 
@@ -2537,6 +2537,70 @@ Return ONLY the rewriting instructions, nothing else.`,
       console.log('[Server] Claude unavailable, using direct feedback passthrough');
     }
 
+    // ── Resume refinement: regenerate DOCX + PDF and update history ──
+    if (type === 'resume') {
+      const entry = optimizationHistory.find(h => h.id === optimizationId);
+      if (!entry) return res.status(404).json({ error: 'Optimization not found' });
+
+      const systemPrompt = `${PROMPTS.resumeRewrite}
+
+REFINEMENT INSTRUCTIONS (apply these changes to the resume JSON you produce — follow precisely):
+${refinedInstructions}
+
+Keep all roles, all education, and all valid work history intact. Only modify what the refinement instructions call out. Still output valid JSON in the exact same schema.`;
+
+      const currentResumeJson = JSON.stringify(entry.rewrittenResume, null, 2);
+      const userContent = [
+        `Job Title: ${entry.jobTitle}`,
+        `Company: ${entry.companyName}`,
+        `\n---\nCurrent Resume JSON (modify this based on the refinement instructions above):\n${currentResumeJson}`,
+        `\n---\nMaster Resume (source of truth — do not invent anything not here):\n${profile.text}`,
+      ].join('\n');
+
+      const raw = await callOpenAI(systemPrompt, userContent, 'Resume Refine', { maxTokens: 3000 });
+      let rewrittenResume;
+      try {
+        const jsonMatch = raw.match(/```(?:json)?\s*([\s\S]*?)```/) || [null, raw];
+        rewrittenResume = JSON.parse(jsonMatch[1].trim());
+      } catch {
+        return res.status(500).json({ error: 'Could not parse refined resume JSON' });
+      }
+
+      // Regenerate files with a "refined" suffix
+      const safeCompany = sanitizeForFilename(entry.companyName);
+      const safeTitle = sanitizeForFilename(entry.jobTitle);
+      const stamp = Date.now();
+      const resumeFileName = `resume-refined-${stamp}-${safeCompany}-${safeTitle}.docx`;
+      const resumePdfFileName = `resume-refined-${stamp}-${safeCompany}-${safeTitle}.pdf`;
+      const resumeFilePath = path.join(__dirname, 'output', resumeFileName);
+      const resumePdfFilePath = path.join(__dirname, 'output', resumePdfFileName);
+      const keywordSpecs = entry.keywords || [];
+
+      await generateResumeDOCX(rewrittenResume, keywordSpecs, entry.jobTitle, entry.companyName, resumeFilePath, profile.text);
+      await generateResumePDF(rewrittenResume, keywordSpecs, resumePdfFilePath, profile.text);
+
+      // Update history in place so future downloads use refined version
+      entry.rewrittenResume = rewrittenResume;
+      entry.resumePath = `/output/${resumeFileName}`;
+      entry.resumePdfPath = `/output/${resumePdfFileName}`;
+      entry.resumeFileName = resumeFileName;
+      entry.resumePdfFileName = resumePdfFileName;
+      entry.lastRefined = new Date().toISOString();
+      saveHistory();
+
+      console.log('[Server] Resume refined and files regenerated');
+      return res.json({
+        refined: rewrittenResume,
+        resumePath: entry.resumePath,
+        resumePdfPath: entry.resumePdfPath,
+        resumeFileName,
+        resumePdfFileName,
+        usedClaude: !!anthropic,
+        instructions: refinedInstructions,
+      });
+    }
+
+    // ── Cover letter / interview answer refinement ──
     const systemPrompt = type === 'cover_letter'
       ? `${PROMPTS.coverLetter.replace('[TONE_SELECTION]', context?.tone || 'Professional')}\n\nREFINEMENT INSTRUCTIONS (from user feedback — follow these precisely):\n${refinedInstructions}`
       : `You are an expert job application assistant. Generate a refined answer based on the instructions below. Use only real experience from the resume. 2-4 sentences. NEVER mention "Indeeeed Optimizer", "Indeeeed", "Rio Brave", or any AI tool.\n\nREFINEMENT INSTRUCTIONS:\n${refinedInstructions}`;

@@ -18,6 +18,8 @@ export default function OptimizationDetail({ optimizationId, onBack }) {
   const [regenerating, setRegenerating] = useState(false);
   const [feedback, setFeedback] = useState('');
   const [refining, setRefining] = useState(false);
+  const [resumeFeedback, setResumeFeedback] = useState('');
+  const [refiningResume, setRefiningResume] = useState(false);
   const [shaking, setShaking] = useState(false);
 
   useEffect(() => {
@@ -79,6 +81,33 @@ export default function OptimizationDetail({ optimizationId, onBack }) {
       setError(`Refinement failed: ${err.message}`);
     } finally {
       setRefining(false);
+    }
+  };
+
+  const handleRefineResume = async () => {
+    if (!resumeFeedback.trim() || !data?.rewrittenResume) return;
+    setRefiningResume(true);
+    try {
+      const result = await refineWithFeedback(
+        JSON.stringify(data.rewrittenResume),
+        resumeFeedback,
+        'resume',
+        { jobTitle: data.jobTitle, companyName: data.companyName },
+        optimizationId
+      );
+      setData(prev => ({
+        ...prev,
+        rewrittenResume: result.refined,
+        resumePath: result.resumePath,
+        resumePdfPath: result.resumePdfPath,
+        resumeFileName: result.resumeFileName,
+        resumePdfFileName: result.resumePdfFileName,
+      }));
+      setResumeFeedback('');
+    } catch (err) {
+      setError(`Resume refinement failed: ${err.message}`);
+    } finally {
+      setRefiningResume(false);
     }
   };
 
@@ -304,6 +333,31 @@ export default function OptimizationDetail({ optimizationId, onBack }) {
                   ))}
                 </div>
               )}
+            </div>
+            {/* Resume Refine */}
+            <div className="px-5 py-4 border-t border-surface-overlay bg-surface/50">
+              <label className="block text-xs font-semibold text-accent mb-1.5">Refine Resume with Feedback</label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={resumeFeedback}
+                  onChange={e => setResumeFeedback(e.target.value)}
+                  placeholder='e.g. "punchier summary", "emphasize leadership", "less buzzwords"'
+                  className="flex-1 bg-surface-raised border border-surface-overlay rounded-lg px-3 py-2 text-xs text-slate-200
+                             placeholder-slate-500 focus:outline-none focus:border-accent/40"
+                  onKeyDown={e => { if (e.key === 'Enter' && !refiningResume) handleRefineResume(); }}
+                  disabled={refiningResume}
+                />
+                <button
+                  onClick={handleRefineResume}
+                  disabled={refiningResume || !resumeFeedback.trim()}
+                  className="px-4 py-2 text-xs font-bold bg-accent text-white rounded-lg hover:bg-accent/80
+                             transition-colors disabled:opacity-50 shrink-0"
+                >
+                  {refiningResume ? 'Refining...' : 'Refine'}
+                </button>
+              </div>
+              <p className="text-[10px] text-slate-600 mt-1">Rewrites resume + regenerates DOCX & PDF — download buttons update automatically</p>
             </div>
           </div>
         </div>
