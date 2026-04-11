@@ -2,10 +2,10 @@ importScripts('config.js');
 
 function installContextMenus() {
   const items = [
-    { id: 'answer-with-rio-brave', title: 'Answer with Rio Brave ✨', contexts: ['selection'] },
-    { id: 'optimize-with-rio-brave', title: 'Optimize with Rio Brave ✨', contexts: ['selection'] },
-    { id: 'make-resume-rio-brave', title: 'Rio Brave — Make Resume & Cover Letter', contexts: ['selection'] },
-    { id: 'fill-all-rio-brave', title: 'Fill All Fields with Rio Brave ✨', contexts: ['page'] }
+    { id: 'answer-with-indeeeed', title: 'Answer with Indeeeed ✨', contexts: ['selection'] },
+    { id: 'optimize-with-indeeeed', title: 'Optimize with Indeeeed ✨', contexts: ['selection'] },
+    { id: 'make-resume-indeeeed', title: 'Indeeeed — Make Resume & Cover Letter', contexts: ['selection'] },
+    { id: 'fill-all-indeeeed', title: 'Fill All Fields with Indeeeed ✨', contexts: ['page'] }
   ];
   chrome.contextMenus.removeAll(() => {
     if (chrome.runtime.lastError) {
@@ -40,7 +40,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 
   if (message.type === 'CHECK_BACKEND') {
-    fetch(`${INDEEEED_CONFIG.API_URL}/health`)
+    fetch(`${INDEEEED_CONFIG.API_URL}/api/health`)
       .then(res => res.json())
       .then(data => sendResponse({ online: true, data }))
       .catch(() => sendResponse({ online: false }));

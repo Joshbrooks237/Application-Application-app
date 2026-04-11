@@ -3,7 +3,7 @@ const API_BASE = process.env.REACT_APP_API_URL || '';
 console.log('[Indeeeed] API_BASE =', API_BASE || '(same origin)');
 
 export async function checkHealth() {
-  const res = await fetch(`${API_BASE}/health`);
+  const res = await fetch(`${API_BASE}/api/health`);
   if (!res.ok) throw new Error(`Health check failed: ${res.status}`);
   return res.json();
 }
