@@ -14,10 +14,11 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function checkBackendStatus() {
-  fetch(`${INDEEEED_CONFIG.API_URL}/health`)
+  fetch(`${INDEEEED_CONFIG.API_URL}/api/health`)
     .then(res => res.json())
     .then(data => {
-      setStatus('backend', 'online', `Backend online — ${data.resumeLoaded ? 'Resume loaded' : 'No resume uploaded'}`);
+      const mode = data.mode || 'Creative Mode';
+      setStatus('backend', 'online', `Backend online — ${mode}`);
     })
     .catch(() => {
       setStatus('backend', 'offline', 'Backend offline — start server first');

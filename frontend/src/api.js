@@ -3,7 +3,7 @@ const API_BASE = process.env.REACT_APP_API_URL || '';
 console.log('[Indeeeed] API_BASE =', API_BASE || '(same origin)');
 
 export async function checkHealth() {
-  const res = await fetch(`${API_BASE}/health`);
+  const res = await fetch(`${API_BASE}/api/health`);
   if (!res.ok) throw new Error(`Health check failed: ${res.status}`);
   return res.json();
 }
@@ -197,12 +197,30 @@ export async function toggleVoiceAutoSelect(profileId, enabled) {
   return res.json();
 }
 
-export async function refineWithFeedback(originalOutput, feedback, type, context = {}) {
+export async function refineWithFeedback(originalOutput, feedback, type, context = {}, optimizationId) {
   const res = await fetch(`${API_BASE}/refine-with-feedback`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ originalOutput, feedback, type, context })
+    body: JSON.stringify({ originalOutput, feedback, type, context, optimizationId })
   });
   if (!res.ok) { const err = await res.json(); throw new Error(err.error || 'Refinement failed'); }
+  return res.json();
+}
+
+// ── Headhunter Integration ──
+
+export async function requestHeadhunterReview(targetRole = '', jobDescription = '') {
+  const res = await fetch(`${API_BASE}/request-headhunter-review`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ targetRole, jobDescription })
+  });
+  if (!res.ok) { const err = await res.json(); throw new Error(err.error || 'Headhunter review failed'); }
+  return res.json();
+}
+
+export async function getHeadhunterInsights() {
+  const res = await fetch(`${API_BASE}/headhunter-insights`);
+  if (!res.ok) throw new Error('Failed to load insights');
   return res.json();
 }
