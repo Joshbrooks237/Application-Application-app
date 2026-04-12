@@ -356,21 +356,37 @@ function calculateMatchScore(original, keywords, rewritten) {
 async function generateCoverLetter(description, summary, keywords, tone, context) {
   const keywordList = (keywords.keywords || []).map(k => k.keyword || k).slice(0, 12);
   
-  const systemPrompt = `You are writing a cover letter for Jim Brooks applying to ${context.jobTitle} at ${context.companyName}.
+  const mirrorInsights = context.mirrorContext
+    ? `\n\nADDITIONAL CONTEXT FROM JIM'S CONVERSATIONS (use this to add authentic detail and voice — but only if it supports real experience):\n${context.mirrorContext.substring(0, 800)}`
+    : '';
 
-Jim's voice: Direct, authentic, dry humor sometimes, no corporate fluff. He's a 40yo from Moorpark with 20+ years across operations, property management, storage facilities, and customer service. Recently building software. Survivor who came out wiser.
+  const systemPrompt = `You are writing a professional cover letter for Jim Brooks applying to ${context.jobTitle} at ${context.companyName}.
 
-KEYWORDS TO INCLUDE (use 6-8 naturally):
+TONE: Professional, confident, human. Sounds like a real person who takes their work seriously. Not stiff, not jokey.
+
+CRITICAL RULE: Only reference experience or traits grounded in the RESUME and CONVERSATION CONTEXT below. Do NOT invent accomplishments, certifications, or skills not supported by these sources. If it's not there, don't say it.
+
+RESUME (primary source of truth):
+${context.resumeText ? context.resumeText.substring(0, 1500) : 'No resume text provided.'}${mirrorInsights}
+
+KEYWORDS TO INCLUDE (use 4-6 naturally where they fit his actual experience):
 ${keywordList.join(', ')}
 
-Write a 3-paragraph cover letter:
-1. Opening: Why this role caught his attention (mention company/role, 1-2 keywords)
-2. Middle: His relevant experience with specific examples (use 4-5 keywords naturally)
-3. Closing: Enthusiasm + call to action
+STRUCTURE (3 paragraphs):
+1. Opening: Connect his actual background to this specific role — be specific, not generic
+2. Middle: 2-3 real examples from the resume/conversations that map to this job's needs (use keywords here)
+3. Closing: Direct, confident call to action
 
-Keep it under 250 words. Sound human, not robotic. No "I am writing to express my interest" garbage.
+BANNED PHRASES:
+- "I am writing to express my interest"
+- "I believe I would be a great fit"
+- "Thank you for your time and consideration"
+- "I would be honored"
+- Anything not backed by resume or conversation context
 
-Return ONLY the letter text, no JSON, no explanations.`;
+Under 280 words. Start with "Dear Hiring Manager,"
+
+Return ONLY the letter text.`;
 
   const userPrompt = `Job Description Summary: ${description.substring(0, 500)}
 
@@ -464,6 +480,14 @@ app.post('/optimize', async (req, res) => {
     const scoring = calculateMatchScore(masterResume.text, keywords, rewrittenResume);
     console.log(`[Server] Resume match score: ${scoring.matchScore}% (target ~${TARGET_MATCH}%)`);
 
+    // Pull Mirror chat context for this profile
+    const mirrorHistory = mirrorConversations[masterResume.id] || [];
+    const mirrorContext = mirrorHistory
+      .filter(m => m.role === 'user' || m.role === 'assistant')
+      .slice(-20)
+      .map(m => `${m.role === 'user' ? 'Jim' : 'Mirror'}: ${m.content}`)
+      .join('\n');
+
     const { text: coverLetterText, letterDate } = await generateCoverLetter(
       fullDescription,
       rewrittenResume.summary,
@@ -474,6 +498,7 @@ app.post('/optimize', async (req, res) => {
         companyName: companyName || 'the company',
         jobTitle: jobTitle || 'the position',
         resumeText: masterResume.text,
+        mirrorContext,
         voiceText
       }
     );
@@ -622,6 +647,13 @@ app.post('/re-optimize/:id', async (req, res) => {
       if (scoring.matchScore > bestScore) {
         bestScore = scoring.matchScore;
         
+        const shakeMirrorHistory = mirrorConversations[masterResume.id] || [];
+        const shakeMirrorContext = shakeMirrorHistory
+          .filter(m => m.role === 'user' || m.role === 'assistant')
+          .slice(-20)
+          .map(m => `${m.role === 'user' ? 'Jim' : 'Mirror'}: ${m.content}`)
+          .join('\n');
+
         const { text: coverLetterText, letterDate } = await generateCoverLetter(
           entry.fullDescription,
           rewrittenResume.summary,
@@ -632,6 +664,7 @@ app.post('/re-optimize/:id', async (req, res) => {
             companyName: entry.companyName,
             jobTitle: entry.jobTitle,
             resumeText: masterResume.text,
+            mirrorContext: shakeMirrorContext,
             voiceText
           }
         );
@@ -770,6 +803,20 @@ function saveMirrorConversations() {
   }
 }
 
+// Load conversation history for a profile
+app.get('/mirror/history/:profileId', (req, res) => {
+  const { profileId } = req.params;
+  const history = (mirrorConversations[profileId] || [])
+    .filter(m => m.role === 'user' || m.role === 'assistant');
+  res.json({ history });
+});
+
+// Explicit save endpoint
+app.post('/mirror/save/:profileId', (req, res) => {
+  saveMirrorConversations();
+  res.json({ saved: true });
+});
+
 app.post('/mirror/chat', async (req, res) => {
   try {
     const { message, profileId } = req.body;
@@ -797,9 +844,9 @@ app.post('/mirror/chat', async (req, res) => {
       timestamp: new Date().toISOString()
     });
 
-    // Keep only last 10 messages for context
-    if (mirrorConversations[profileId].length > 10) {
-      mirrorConversations[profileId] = mirrorConversations[profileId].slice(-10);
+    // Keep last 40 messages — longer memory means it knows you better
+    if (mirrorConversations[profileId].length > 40) {
+      mirrorConversations[profileId] = mirrorConversations[profileId].slice(-40);
     }
 
     const systemPrompt = `You are "The Mirror" — a friendly, observant friend who's helping Jim get jobs while staying authentic.
